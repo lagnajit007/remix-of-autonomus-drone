@@ -1,5 +1,5 @@
 import { BentoCard } from "./BentoCard";
-import { Drone } from "@/types/command-center";
+import { Drone, DroneStatus } from "@/types/command-center";
 import { 
   Target, 
   Pause, 
@@ -29,20 +29,25 @@ interface MissionCardProps {
   className?: string;
 }
 
+// Helper to check if drone is active
+const isDroneActive = (status: DroneStatus): boolean => {
+  return status === "patrolling" || status === "on_mission" || status === "en_route";
+};
+
 // Generate missions from drones
 const generateMissions = (drones: Drone[]): Mission[] => {
   return drones
-    .filter(d => d.status === "active" || d.status === "returning")
-    .map((drone, index) => ({
+    .filter(d => isDroneActive(d.status) || d.status === "returning")
+    .map((drone) => ({
       id: `mission-${drone.id}`,
-      name: drone.currentTask || "Patrol Mission",
-      status: drone.status === "active" ? "active" : "paused",
-      progress: drone.status === "active" ? Math.floor(Math.random() * 60) + 20 : 100,
+      name: drone.task || "Patrol Mission",
+      status: isDroneActive(drone.status) ? "active" as const : "paused" as const,
+      progress: isDroneActive(drone.status) ? Math.floor(Math.random() * 60) + 20 : 100,
       drone: drone.id,
-      intent: drone.currentTask?.includes("Perimeter") ? "Perimeter Scan" : 
-              drone.currentTask?.includes("Thermal") ? "Thermal Survey" : "Monitoring",
-      eta: drone.eta,
-      zone: drone.assignedZone,
+      intent: drone.task?.includes("Perimeter") ? "Perimeter Scan" : 
+              drone.task?.includes("Thermal") ? "Thermal Survey" : "Monitoring",
+      eta: drone.eta ? `${drone.eta}s` : undefined,
+      zone: drone.zone,
     }));
 };
 
@@ -112,7 +117,7 @@ const MissionItem = ({ mission, compact = false }: { mission: Mission; compact?:
 
 // Swarm intent card
 const SwarmIntentCard = ({ drones }: { drones: Drone[] }) => {
-  const activeDrones = drones.filter(d => d.status === "active");
+  const activeDrones = drones.filter(d => isDroneActive(d.status));
   
   return (
     <div className="p-2 rounded-lg bg-secondary/30 border border-primary/10">
@@ -125,7 +130,7 @@ const SwarmIntentCard = ({ drones }: { drones: Drone[] }) => {
               <span className="text-foreground">{drone.id}</span>
             </span>
             <span className="text-muted-foreground truncate max-w-[80px]">
-              {drone.currentTask?.split(" ")[0] || "Patrol"}
+              {drone.task?.split(" ")[0] || "Patrol"}
             </span>
           </div>
         ))}
@@ -187,7 +192,7 @@ export const MissionCard = ({ drones, compact = false, className }: MissionCardP
         )}
 
         {/* Swarm overview */}
-        {drones.filter(d => d.status === "active").length > 1 && (
+        {drones.filter(d => isDroneActive(d.status)).length > 1 && (
           <SwarmIntentCard drones={drones} />
         )}
         

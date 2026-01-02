@@ -1,7 +1,7 @@
 import { BentoCard } from "./BentoCard";
-import { CommandCenterState, OperationalState, Incident } from "@/types/command-center";
+import { CommandCenterState, OperationalState, Incident, DroneStatus } from "@/types/command-center";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, useMap } from "react-leaflet";
-import { Icon, DivIcon, LatLngTuple } from "leaflet";
+import { DivIcon, LatLngTuple } from "leaflet";
 import { useEffect, useMemo } from "react";
 import { 
   Maximize2, 
@@ -27,22 +27,27 @@ const MapController = ({ operationalState, incident }: { operationalState: Opera
   
   useEffect(() => {
     if (operationalState !== "green" && incident) {
-      map.flyTo([incident.coordinates.lat, incident.coordinates.lng], 16, { duration: 1 });
+      map.flyTo([incident.location.lat, incident.location.lng], 16, { duration: 1 });
     } else {
-      map.flyTo([37.7749, -122.4194], 13, { duration: 1 });
+      map.flyTo([34.0522, -118.2437], 13, { duration: 1 });
     }
   }, [operationalState, incident, map]);
   
   return null;
 };
 
+// Helper to check if drone is active (patrolling or on mission)
+const isDroneActive = (status: DroneStatus): boolean => {
+  return status === "patrolling" || status === "on_mission" || status === "en_route";
+};
+
 // Custom icons
-const createDroneIcon = (status: string) => new DivIcon({
+const createDroneIcon = (status: DroneStatus) => new DivIcon({
   className: "custom-drone-icon",
   html: `
     <div class="relative">
-      <div class="w-8 h-8 rounded-full ${status === "active" ? "bg-primary/30" : "bg-muted/30"} flex items-center justify-center ${status === "active" ? "animate-pulse" : ""}">
-        <div class="w-4 h-4 rounded-full ${status === "active" ? "bg-primary" : "bg-muted-foreground"} flex items-center justify-center">
+      <div class="w-8 h-8 rounded-full ${isDroneActive(status) ? "bg-primary/30" : "bg-muted/30"} flex items-center justify-center ${isDroneActive(status) ? "animate-pulse" : ""}">
+        <div class="w-4 h-4 rounded-full ${isDroneActive(status) ? "bg-primary" : "bg-muted-foreground"} flex items-center justify-center">
           <svg class="w-2.5 h-2.5 text-background" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
           </svg>
@@ -54,10 +59,10 @@ const createDroneIcon = (status: string) => new DivIcon({
   iconAnchor: [16, 16],
 });
 
-const createSensorIcon = (isActive: boolean) => new DivIcon({
+const createSensorIcon = (status: string) => new DivIcon({
   className: "custom-sensor-icon",
   html: `
-    <div class="w-3 h-3 rounded-full ${isActive ? "bg-primary pulse-cyan" : "bg-muted-foreground/50"}"></div>
+    <div class="w-3 h-3 rounded-full ${status === "alert" ? "bg-status-critical pulse-red" : status === "normal" ? "bg-primary pulse-cyan" : "bg-muted-foreground/50"}"></div>
   `,
   iconSize: [12, 12],
   iconAnchor: [6, 6],
@@ -103,14 +108,20 @@ const FlightPath = ({ positions, isPlanned = false }: { positions: LatLngTuple[]
 );
 
 // Wind direction indicator overlay
-const WindOverlay = ({ direction, speed }: { direction: number; speed: number }) => (
-  <div className="absolute bottom-16 left-3 p-2 bg-card/80 backdrop-blur-sm rounded-lg border border-primary/20 z-[1000]">
-    <div className="flex items-center gap-2 text-xs">
-      <Wind className="w-3.5 h-3.5 text-primary" style={{ transform: `rotate(${direction}deg)` }} />
-      <span className="text-foreground font-mono">{speed} m/s</span>
+const WindOverlay = ({ direction, speed }: { direction: string; speed: number }) => {
+  const directionDegrees: Record<string, number> = {
+    N: 0, NE: 45, E: 90, SE: 135, S: 180, SW: 225, W: 270, NW: 315
+  };
+  
+  return (
+    <div className="absolute bottom-16 left-3 p-2 bg-card/80 backdrop-blur-sm rounded-lg border border-primary/20 z-[1000]">
+      <div className="flex items-center gap-2 text-xs">
+        <Wind className="w-3.5 h-3.5 text-primary" style={{ transform: `rotate(${directionDegrees[direction] || 0}deg)` }} />
+        <span className="text-foreground font-mono">{speed} mph {direction}</span>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Map controls overlay
 const MapControls = ({ onThermalToggle, thermalActive }: { onThermalToggle: () => void; thermalActive: boolean }) => (
@@ -136,12 +147,12 @@ const MapControls = ({ onThermalToggle, thermalActive }: { onThermalToggle: () =
 );
 
 export const MapCard = ({ state, operationalState, className, onIncidentClick }: MapCardProps) => {
-  const activeIncident = state.incidents.find(i => i.status === "active" || i.status === "responding");
+  const activeIncident = state.incidents.find(i => i.status === "active" || i.status === "responding") || state.activeIncident;
   
   // Generate flight paths
   const flightPaths = useMemo(() => {
     return state.drones
-      .filter(d => d.status === "active")
+      .filter(d => isDroneActive(d.status))
       .map(drone => {
         const points: LatLngTuple[] = [
           [drone.location.lat, drone.location.lng],
@@ -172,12 +183,15 @@ export const MapCard = ({ state, operationalState, className, onIncidentClick }:
       <MapControls onThermalToggle={() => {}} thermalActive={operationalState === "red"} />
       
       {/* Wind overlay */}
-      <WindOverlay direction={state.environmental?.windDirection || 0} speed={state.environmental?.windSpeed || 0} />
+      <WindOverlay 
+        direction={state.environmentalData.windDirection} 
+        speed={state.environmentalData.windSpeed} 
+      />
       
       {/* Map */}
       <div className="h-full w-full min-h-[300px]">
         <MapContainer
-          center={[37.7749, -122.4194]}
+          center={[34.0522, -118.2437]}
           zoom={13}
           className="h-full w-full"
           zoomControl={false}
@@ -187,7 +201,7 @@ export const MapCard = ({ state, operationalState, className, onIncidentClick }:
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           />
           
-          <MapController operationalState={operationalState} incident={activeIncident} />
+          <MapController operationalState={operationalState} incident={activeIncident || undefined} />
           
           {/* Flight paths */}
           {flightPaths.map(path => (
@@ -204,7 +218,7 @@ export const MapCard = ({ state, operationalState, className, onIncidentClick }:
               <Popup className="custom-popup">
                 <div className="text-xs">
                   <div className="font-medium">{drone.id}</div>
-                  <div className="text-muted-foreground">{drone.currentTask}</div>
+                  <div className="text-muted-foreground">{drone.task || drone.status}</div>
                   <div className="text-muted-foreground">Battery: {drone.battery}%</div>
                 </div>
               </Popup>
@@ -216,7 +230,7 @@ export const MapCard = ({ state, operationalState, className, onIncidentClick }:
             <Marker
               key={sensor.id}
               position={[sensor.location.lat, sensor.location.lng]}
-              icon={createSensorIcon(sensor.status === "active")}
+              icon={createSensorIcon(sensor.status)}
             >
               <Popup>
                 <div className="text-xs">
@@ -236,40 +250,36 @@ export const MapCard = ({ state, operationalState, className, onIncidentClick }:
             >
               <Popup>
                 <div className="text-xs">
-                  <div className="font-medium">{dock.name}</div>
-                  <div className="text-muted-foreground">Drones: {dock.dronesAvailable}/{dock.totalSlots}</div>
+                  <div className="font-medium">{dock.id}</div>
+                  <div className="text-muted-foreground">Drones: {dock.dronesAvailable}/{dock.totalCapacity}</div>
                 </div>
               </Popup>
             </Marker>
           ))}
           
-          {/* Incidents */}
-          {state.incidents
-            .filter(i => i.status === "active" || i.status === "responding")
-            .map(incident => (
-              <Marker
-                key={incident.id}
-                position={[incident.coordinates.lat, incident.coordinates.lng]}
-                icon={createIncidentIcon(incident.severity)}
-                eventHandlers={{
-                  click: () => onIncidentClick?.(incident),
-                }}
-              >
-                <Popup>
-                  <div className="text-xs">
-                    <div className="font-medium text-status-critical">{incident.title}</div>
-                    <div className="text-muted-foreground">{incident.location}</div>
-                    <div className="text-muted-foreground">Confidence: {incident.confidence}%</div>
-                  </div>
-                </Popup>
-              </Marker>
-            ))
-          }
+          {/* Active incident */}
+          {activeIncident && (
+            <Marker
+              key={activeIncident.id}
+              position={[activeIncident.location.lat, activeIncident.location.lng]}
+              icon={createIncidentIcon(activeIncident.severity)}
+              eventHandlers={{
+                click: () => onIncidentClick?.(activeIncident),
+              }}
+            >
+              <Popup>
+                <div className="text-xs">
+                  <div className="font-medium text-status-critical">{activeIncident.type.replace("_", " ")}</div>
+                  <div className="text-muted-foreground">{activeIncident.address}</div>
+                </div>
+              </Popup>
+            </Marker>
+          )}
           
           {/* Incident radius for red state */}
           {operationalState === "red" && activeIncident && (
             <Circle
-              center={[activeIncident.coordinates.lat, activeIncident.coordinates.lng]}
+              center={[activeIncident.location.lat, activeIncident.location.lng]}
               radius={300}
               pathOptions={{
                 color: "hsl(0, 100%, 62%)",

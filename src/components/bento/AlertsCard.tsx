@@ -8,7 +8,6 @@ import {
   Eye,
   CheckCircle2,
   XCircle,
-  ChevronRight,
   Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,6 +20,29 @@ interface AlertsCardProps {
   onVeto?: (incidentId: string) => void;
   className?: string;
 }
+
+// Get confidence from threat assessment (derived from heat signature)
+const getConfidence = (incident: Incident): number => {
+  // Higher heat = higher confidence
+  const heat = incident.threatAssessment.heatSignature;
+  if (heat > 400) return 98;
+  if (heat > 300) return 95;
+  if (heat > 200) return 92;
+  if (heat > 100) return 85;
+  return 75;
+};
+
+// Get display title from incident type
+const getIncidentTitle = (incident: Incident): string => {
+  const titles: Record<Incident["type"], string> = {
+    thermal_anomaly: "Thermal Anomaly",
+    fire: "Fire Detected",
+    intrusion: "Security Breach",
+    medical: "Medical Emergency",
+    accident: "Accident Reported",
+  };
+  return titles[incident.type] || "Incident";
+};
 
 // Confidence gauge component
 const ConfidenceGauge = ({ confidence }: { confidence: number }) => {
@@ -50,13 +72,12 @@ const ConfidenceGauge = ({ confidence }: { confidence: number }) => {
 
 // Incident type icon
 const IncidentIcon = ({ type }: { type: Incident["type"] }) => {
-  const icons = {
+  const icons: Record<Incident["type"], typeof Eye> = {
     fire: Flame,
     intrusion: Shield,
     medical: Users,
-    structural: AlertTriangle,
-    chemical: Zap,
-    other: Eye,
+    thermal_anomaly: AlertTriangle,
+    accident: Zap,
   };
   const Icon = icons[type] || Eye;
   
@@ -65,7 +86,7 @@ const IncidentIcon = ({ type }: { type: Incident["type"] }) => {
 
 // Priority indicator
 const PriorityBadge = ({ severity }: { severity: Incident["severity"] }) => {
-  const styles = {
+  const styles: Record<Incident["severity"], string> = {
     critical: "bg-status-critical/20 text-status-critical border-status-critical/30",
     high: "bg-status-attention/20 text-status-attention border-status-attention/30",
     medium: "bg-primary/20 text-primary border-primary/30",
@@ -94,7 +115,9 @@ const AlertItem = ({
   onVeto?: () => void;
   isActive?: boolean;
 }) => {
-  const isFalsePositive = incident.confidence < 85;
+  const confidence = getConfidence(incident);
+  const isFalsePositive = confidence < 85;
+  const title = getIncidentTitle(incident);
   
   return (
     <div className={cn(
@@ -121,26 +144,26 @@ const AlertItem = ({
             <IncidentIcon type={incident.type} />
           </div>
           <div>
-            <div className="text-sm font-medium text-foreground">{incident.title}</div>
-            <div className="text-xs text-muted-foreground">{incident.location}</div>
+            <div className="text-sm font-medium text-foreground">{title}</div>
+            <div className="text-xs text-muted-foreground">{incident.address}</div>
           </div>
         </div>
-        <ConfidenceGauge confidence={incident.confidence} />
+        <ConfidenceGauge confidence={confidence} />
       </div>
       
       {/* Details */}
       <div className="flex items-center justify-between text-xs mb-3">
         <PriorityBadge severity={incident.severity} />
         <span className="text-muted-foreground">
-          {new Date(incident.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {incident.detectedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
       
       {/* Autonomous action taken */}
-      {incident.autonomousAction && (
+      {incident.assignedDrones.length > 0 && (
         <div className="flex items-center gap-2 text-xs text-status-normal mb-3">
           <CheckCircle2 className="w-3 h-3" />
-          <span>{incident.autonomousAction}</span>
+          <span>{incident.assignedDrones[0]} dispatched</span>
         </div>
       )}
       

@@ -1,5 +1,5 @@
 import { BentoCard } from "./BentoCard";
-import { Drone } from "@/types/command-center";
+import { Drone, DroneStatus } from "@/types/command-center";
 import { 
   Battery, 
   Signal, 
@@ -18,6 +18,11 @@ interface TelemetryCardProps {
   compact?: boolean;
   className?: string;
 }
+
+// Helper to check if drone is active
+const isDroneActive = (status: DroneStatus): boolean => {
+  return status === "patrolling" || status === "on_mission" || status === "en_route";
+};
 
 // Battery ring gauge component
 const BatteryGauge = ({ percentage }: { percentage: number }) => {
@@ -112,6 +117,7 @@ const PayloadStatus = ({ active, icon: Icon, label }: { active: boolean; icon: a
 
 export const TelemetryCard = ({ drone, compact = false, className }: TelemetryCardProps) => {
   const isLowBattery = drone.battery < 30;
+  const isActive = isDroneActive(drone.status);
   
   if (compact) {
     return (
@@ -149,11 +155,11 @@ export const TelemetryCard = ({ drone, compact = false, className }: TelemetryCa
             <div className="text-sm font-medium text-foreground">{drone.id}</div>
             <div className={cn(
               "text-xs",
-              drone.status === "active" ? "text-status-normal" :
+              isActive ? "text-status-normal" :
               drone.status === "returning" ? "text-status-attention" :
               "text-muted-foreground"
             )}>
-              {drone.status.charAt(0).toUpperCase() + drone.status.slice(1)}
+              {drone.status.charAt(0).toUpperCase() + drone.status.slice(1).replace("_", " ")}
             </div>
           </div>
           <LatencyBadge ms={drone.signalStrength > 70 ? 132 : drone.signalStrength > 40 ? 287 : 512} />

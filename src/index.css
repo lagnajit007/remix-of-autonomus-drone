@@ -226,6 +226,45 @@
   }
 }
 
+/* Bento Grid System */
+.bento-grid-calm {
+  display: grid;
+  grid-template-columns: 280px 1fr 300px;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "telemetry map alerts"
+    "mission map alerts"
+    "comms playback playback";
+}
+
+.bento-grid-alert {
+  display: grid;
+  grid-template-columns: 200px 1fr 350px;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "telemetry map alerts"
+    "mission map alerts"
+    "comms playback playback";
+}
+
+.bento-grid-critical {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "telemetry map alerts"
+    "mission map command"
+    "comms playback playback";
+}
+
+.bento-area-telemetry { grid-area: telemetry; }
+.bento-area-map { grid-area: map; }
+.bento-area-alerts { grid-area: alerts; }
+.bento-area-mission { grid-area: mission; }
+.bento-area-comms { grid-area: comms; }
+.bento-area-playback { grid-area: playback; }
+.bento-area-command { grid-area: command; }
+
 /* Leaflet map dark theme overrides */
 .leaflet-container {
   background: hsl(216 50% 10%) !important;

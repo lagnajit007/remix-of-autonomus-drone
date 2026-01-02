@@ -8,7 +8,9 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle2,
-  Zap
+  Zap,
+  Users,
+  Radio
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,20 +23,20 @@ interface PlaybackBarProps {
 
 // Event marker on timeline
 const EventMarker = ({ event, position }: { event: TimelineEvent; position: number }) => {
-  const typeIcons = {
+  const typeIcons: Record<TimelineEvent["type"], typeof Clock> = {
     detection: AlertTriangle,
     dispatch: Zap,
-    update: Clock,
+    confirmation: CheckCircle2,
+    coordination: Radio,
+    evacuation: Users,
     resolution: CheckCircle2,
-    alert: AlertTriangle,
   };
   const Icon = typeIcons[event.type] || Clock;
   
-  const severityColors = {
+  const severityColors: Record<TimelineEvent["severity"], string> = {
     info: "bg-primary",
     warning: "bg-status-attention",
     critical: "bg-status-critical",
-    success: "bg-status-normal",
   };
   
   return (
@@ -51,10 +53,10 @@ const EventMarker = ({ event, position }: { event: TimelineEvent; position: numb
       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-card border border-primary/30 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
         <div className="flex items-center gap-1.5">
           <Icon className="w-3 h-3" />
-          <span>{event.title}</span>
+          <span>{event.message.substring(0, 30)}{event.message.length > 30 ? "..." : ""}</span>
         </div>
         <div className="text-muted-foreground">
-          {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          {event.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </div>
       </div>
     </div>
