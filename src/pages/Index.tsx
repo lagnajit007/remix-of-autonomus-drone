@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BentoGrid, BentoArea } from '@/components/bento/BentoGrid';
 import { TopBar } from '@/components/bento/TopBar';
 import { TelemetryCard } from '@/components/bento/TelemetryCard';
@@ -7,6 +7,7 @@ import { AlertsCard } from '@/components/bento/AlertsCard';
 import { MissionCard } from '@/components/bento/MissionCard';
 import { CommsCard } from '@/components/bento/CommsCard';
 import { PlaybackBar } from '@/components/bento/PlaybackBar';
+import { ThermalFeedCard } from '@/components/bento/ThermalFeedCard';
 import { Button } from '@/components/ui/button';
 import { 
   getInitialState, 
@@ -22,7 +23,7 @@ export default function Index() {
   const [elapsedTime, setElapsedTime] = useState(0);
 
   // Demo controls - change operational state
-  const setOperationalState = (newState: OperationalState) => {
+  const setOperationalState = useCallback((newState: OperationalState) => {
     if (newState === 'green') {
       setState(getInitialState());
       setElapsedTime(0);
@@ -51,7 +52,32 @@ export default function Index() {
         }),
       }));
     }
-  };
+  }, []);
+
+  // Keyboard shortcuts: Ctrl+1 (Green), Ctrl+2 (Amber), Ctrl+3 (Red)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case '1':
+            e.preventDefault();
+            setOperationalState('green');
+            break;
+          case '2':
+            e.preventDefault();
+            setOperationalState('amber');
+            break;
+          case '3':
+            e.preventDefault();
+            setOperationalState('red');
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setOperationalState]);
 
   // Elapsed time counter for red state
   useEffect(() => {
@@ -71,6 +97,7 @@ export default function Index() {
 
   // Get primary drone for telemetry display
   const primaryDrone = state.drones.find(d => d.status === 'on_mission' || d.status === 'en_route') || state.drones[0];
+  const isRedState = state.operationalState === 'red';
 
   return (
     <div className="h-screen w-full flex flex-col bg-background overflow-hidden">
@@ -97,14 +124,27 @@ export default function Index() {
           />
         </BentoArea>
 
-        {/* Alerts Card - Right */}
+        {/* Alerts Card - Right (or Thermal Feed in Red state) */}
         <BentoArea area="alerts">
-          <AlertsCard 
-            incidents={state.incidents}
-            operationalState={state.operationalState}
-            onApprove={handleApprove}
-            onVeto={handleVeto}
-          />
+          {isRedState ? (
+            <div className="h-full flex flex-col gap-3">
+              <ThermalFeedCard drone={primaryDrone} className="flex-1" />
+              <AlertsCard 
+                incidents={state.incidents}
+                operationalState={state.operationalState}
+                onApprove={handleApprove}
+                onVeto={handleVeto}
+                className="flex-shrink-0"
+              />
+            </div>
+          ) : (
+            <AlertsCard 
+              incidents={state.incidents}
+              operationalState={state.operationalState}
+              onApprove={handleApprove}
+              onVeto={handleVeto}
+            />
+          )}
         </BentoArea>
 
         {/* Mission Card - Bottom Left */}
@@ -130,6 +170,7 @@ export default function Index() {
             variant={state.operationalState === 'green' ? 'default' : 'outline'} 
             onClick={() => setOperationalState('green')}
             className={state.operationalState === 'green' ? 'bg-status-normal hover:bg-status-normal/90' : ''}
+            title="Ctrl+1"
           >
             Green
           </Button>
@@ -138,6 +179,7 @@ export default function Index() {
             variant={state.operationalState === 'amber' ? 'default' : 'outline'} 
             className={state.operationalState === 'amber' ? 'bg-status-attention hover:bg-status-attention/90 text-black' : 'border-[hsl(var(--status-attention)/0.5)]'} 
             onClick={() => setOperationalState('amber')}
+            title="Ctrl+2"
           >
             Amber
           </Button>
@@ -146,9 +188,11 @@ export default function Index() {
             variant={state.operationalState === 'red' ? 'default' : 'outline'} 
             className={state.operationalState === 'red' ? 'bg-status-critical hover:bg-status-critical/90' : 'border-[hsl(var(--status-critical)/0.5)]'} 
             onClick={() => setOperationalState('red')}
+            title="Ctrl+3"
           >
             Red
           </Button>
+          <span className="text-[10px] text-muted-foreground/60 ml-2 hidden sm:inline">Ctrl+1/2/3</span>
         </div>
       </div>
     </div>
