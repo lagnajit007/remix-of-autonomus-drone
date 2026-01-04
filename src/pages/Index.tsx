@@ -10,7 +10,11 @@ import { TopBar } from '@/components/layout/TopBar';
 import { LeftSidebar } from '@/components/layout/LeftSidebar';
 import { RightPanel } from '@/components/layout/RightPanel';
 import { CommandMap } from '@/components/map/CommandMap';
+import { IncidentOverlay } from '@/components/overlays/IncidentOverlay';
+import { VoicePanel, useVoicePushToTalk } from '@/components/voice/VoicePanel';
+import { useVoiceCommands } from '@/hooks/useVoiceCommands';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/hooks/use-toast';
 import { 
   getInitialState, 
   mockIncidentDetected, 
@@ -20,16 +24,19 @@ import {
 } from '@/data/mock-data';
 import { OperationalState } from '@/types/command-center';
 
-// Mock zones data
+// Mock zones data with center coordinates for zoom
 const mockZones = [
-  { id: 'zone-a', name: 'Zone A - North Sector', drones: 2, sensors: 14, status: 'normal' as const },
-  { id: 'zone-b', name: 'Zone B - East Perimeter', drones: 1, sensors: 8, status: 'normal' as const },
-  { id: 'zone-c', name: 'Zone C - South Ridge', drones: 3, sensors: 12, status: 'attention' as const, hasIncident: true },
+  { id: 'zone-a', name: 'Zone A - North Sector', drones: 2, sensors: 14, status: 'normal' as const, center: [34.06, -118.25] as [number, number] },
+  { id: 'zone-b', name: 'Zone B - East Perimeter', drones: 1, sensors: 8, status: 'normal' as const, center: [34.05, -118.23] as [number, number] },
+  { id: 'zone-c', name: 'Zone C - South Ridge', drones: 3, sensors: 12, status: 'attention' as const, hasIncident: true, center: [34.04, -118.25] as [number, number] },
 ];
 
 export default function Index() {
   const [state, setState] = useState(getInitialState());
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [selectedDroneId, setSelectedDroneId] = useState<string | null>(null);
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
+  const [showIncidentOverlay, setShowIncidentOverlay] = useState(false);
 
   // Format elapsed time as MM:SS
   const formatTime = (seconds: number) => {
@@ -43,6 +50,8 @@ export default function Index() {
     if (newState === 'green') {
       setState(getInitialState());
       setElapsedTime(0);
+      setShowIncidentOverlay(false);
+      setSelectedDroneId(null);
     } else if (newState === 'amber') {
       setState(prev => ({
         ...prev,
@@ -54,6 +63,7 @@ export default function Index() {
           d.id === 'D-247' ? { ...d, status: 'en_route' as const, task: 'Responding to incident', eta: 27 } : d
         ),
       }));
+      setShowIncidentOverlay(true);
     } else if (newState === 'red') {
       setState(prev => ({
         ...prev,
@@ -67,12 +77,70 @@ export default function Index() {
           return d;
         }),
       }));
+      setShowIncidentOverlay(false);
     }
   }, []);
 
-  // Keyboard shortcuts: Ctrl+1 (Green), Ctrl+2 (Amber), Ctrl+3 (Red)
+  // Handle zone click - zoom to zone
+  const handleZoneClick = useCallback((zoneId: string, center?: [number, number]) => {
+    console.log(`[INDEX] Zone clicked: ${zoneId}`, center);
+    if (center) {
+      setMapCenter(center);
+      toast({
+        title: "Map Centered",
+        description: `Zoomed to ${mockZones.find(z => z.id === zoneId)?.name}`,
+      });
+    }
+  }, []);
+
+  // Handle drone selection
+  const handleDroneSelect = useCallback((droneId: string) => {
+    console.log(`[INDEX] Drone selected: ${droneId}`);
+    setSelectedDroneId(prev => prev === droneId ? null : droneId);
+    
+    // Find drone and zoom to it
+    const drone = state.drones.find(d => d.id === droneId);
+    if (drone?.position) {
+      setMapCenter(drone.position);
+    }
+    
+    toast({
+      title: selectedDroneId === droneId ? "Drone Deselected" : "Drone Selected",
+      description: selectedDroneId === droneId ? `${droneId} deselected` : `Focused on ${droneId}`,
+    });
+  }, [state.drones, selectedDroneId]);
+
+  // Voice commands setup
+  const { simulateVoiceCommand } = useVoiceCommands({
+    operationalState: state.operationalState,
+    activeIncident: state.activeIncident,
+    drones: state.drones,
+    onApprove: () => handleApprove(state.incidents[0]?.id),
+    onDecline: () => handleVeto(state.incidents[0]?.id),
+    onDeployBackup: () => {
+      console.log('[INDEX] Deploying backup drone');
+      toast({
+        title: "Backup Deployed",
+        description: "D-412 launching from Dock 2",
+      });
+    },
+    onZoomToIncident: () => {
+      if (state.activeIncident?.coordinates) {
+        setMapCenter(state.activeIncident.coordinates);
+      }
+    },
+    onZoomToDrone: (droneId: string) => {
+      handleDroneSelect(droneId);
+    },
+    onMarkResolved: () => setOperationalState('green'),
+  });
+
+  const { isListening, toggleListening } = useVoicePushToTalk(simulateVoiceCommand);
+
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // State switching shortcuts
       if (e.ctrlKey || e.metaKey) {
         switch (e.key) {
           case '1':
@@ -89,11 +157,13 @@ export default function Index() {
             break;
         }
       }
-      // Space to approve in amber state
-      if (e.code === 'Space' && state.operationalState === 'amber') {
+      
+      // Space to approve in amber state (when overlay is showing)
+      if (e.code === 'Space' && state.operationalState === 'amber' && showIncidentOverlay && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         handleApprove(state.incidents[0]?.id);
       }
+      
       // Escape to veto/dismiss
       if (e.code === 'Escape' && state.operationalState !== 'green') {
         e.preventDefault();
@@ -103,7 +173,7 @@ export default function Index() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setOperationalState, state.operationalState, state.incidents]);
+  }, [setOperationalState, state.operationalState, state.incidents, showIncidentOverlay]);
 
   // Elapsed time counter for active incidents
   useEffect(() => {
@@ -113,18 +183,34 @@ export default function Index() {
     }
   }, [state.operationalState]);
 
-  const handleApprove = (incidentId: string) => {
+  const handleApprove = useCallback((incidentId: string) => {
+    console.log('[INDEX] Approving incident:', incidentId);
+    setShowIncidentOverlay(false);
     setOperationalState('red');
-  };
+    toast({
+      title: "Response Approved",
+      description: "Full emergency response initiated. Good call.",
+    });
+  }, [setOperationalState]);
 
-  const handleVeto = (incidentId: string) => {
+  const handleVeto = useCallback((incidentId: string) => {
+    console.log('[INDEX] Vetoing incident:', incidentId);
+    setShowIncidentOverlay(false);
     setOperationalState('green');
-  };
+    toast({
+      title: "Alert Dismissed",
+      description: "Returning to normal monitoring.",
+    });
+  }, [setOperationalState]);
 
-  // Get active drones for display
-  const activeDrones = state.drones.filter(d => 
-    d.status === 'on_mission' || d.status === 'en_route' || d.status === 'returning'
-  );
+  const handleMonitorOnly = useCallback(() => {
+    console.log('[INDEX] Monitor only selected');
+    setShowIncidentOverlay(false);
+    toast({
+      title: "Monitoring Mode",
+      description: "Continuing to observe. Alert will remain active.",
+    });
+  }, []);
 
   // Update zones based on state
   const currentZones = state.operationalState === 'green' 
@@ -135,13 +221,23 @@ export default function Index() {
     <CommandLayout>
       {/* Top Bar */}
       <TopBarSlot>
-        <TopBar 
-          operationalState={state.operationalState}
-          activeIncidents={state.incidents.length}
-          alertsCount={state.operationalState === 'green' ? 0 : 2}
-          shiftTime="4h 23m"
-          operatorName="Sarah Chen"
-        />
+        <div className="flex items-center justify-between w-full">
+          <TopBar 
+            operationalState={state.operationalState}
+            activeIncidents={state.incidents.length}
+            alertsCount={state.operationalState === 'green' ? 0 : 2}
+            shiftTime="4h 23m"
+            operatorName="Sarah Chen"
+          />
+          
+          {/* Voice Panel in Top Bar */}
+          <VoicePanel
+            isListening={isListening}
+            onToggleListening={toggleListening}
+            onCommand={simulateVoiceCommand}
+            className="ml-4"
+          />
+        </div>
       </TopBarSlot>
 
       {/* Left Sidebar - Static Context */}
@@ -156,6 +252,9 @@ export default function Index() {
           networkLatency={98}
           weather="Clear, 18mph"
           lastUpdate="3s ago"
+          selectedDroneId={selectedDroneId}
+          onZoneClick={handleZoneClick}
+          onDroneSelect={handleDroneSelect}
         />
       </LeftSidebarSlot>
 
@@ -164,6 +263,8 @@ export default function Index() {
         <CommandMap 
           state={state}
           operationalState={state.operationalState}
+          selectedDroneId={selectedDroneId}
+          mapCenter={mapCenter}
         />
       </CenterMapSlot>
 
@@ -179,8 +280,19 @@ export default function Index() {
         />
       </RightPanelSlot>
 
+      {/* Incident Overlay (Amber State) */}
+      {state.operationalState === 'amber' && state.activeIncident && (
+        <IncidentOverlay
+          incident={state.activeIncident}
+          isVisible={showIncidentOverlay}
+          onApprove={() => handleApprove(state.activeIncident!.id)}
+          onVeto={() => handleVeto(state.activeIncident!.id)}
+          onMonitorOnly={handleMonitorOnly}
+        />
+      )}
+
       {/* Demo Controls (Bottom overlay) */}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40">
         <div className="command-card px-4 py-3 flex items-center gap-4">
           <span className="text-xs text-muted-foreground">Demo:</span>
           <div className="flex items-center gap-2">
@@ -216,7 +328,7 @@ export default function Index() {
             </div>
           )}
           <span className="text-[10px] text-muted-foreground/60 pl-3 border-l border-primary/20">
-            Ctrl+1/2/3 | Space=Approve | Esc=Veto
+            Ctrl+1/2/3 | Space=Approve | Esc=Veto | Ctrl+Space=Voice
           </span>
         </div>
       </div>
