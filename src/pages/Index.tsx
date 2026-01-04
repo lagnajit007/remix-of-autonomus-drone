@@ -137,6 +137,26 @@ export default function Index() {
 
   const { isListening, toggleListening } = useVoicePushToTalk(simulateVoiceCommand);
 
+  const handleApprove = useCallback((incidentId: string) => {
+    console.log('[INDEX] Approving incident:', incidentId);
+    setShowIncidentOverlay(false);
+    setOperationalState('red');
+    toast({
+      title: "Response Approved",
+      description: "Full emergency response initiated. Good call.",
+    });
+  }, [setOperationalState]);
+
+  const handleVeto = useCallback((incidentId: string) => {
+    console.log('[INDEX] Vetoing incident:', incidentId);
+    setShowIncidentOverlay(false);
+    setOperationalState('green');
+    toast({
+      title: "Alert Dismissed",
+      description: "Returning to normal monitoring.",
+    });
+  }, [setOperationalState]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -161,19 +181,23 @@ export default function Index() {
       // Space to approve in amber state (when overlay is showing)
       if (e.code === 'Space' && state.operationalState === 'amber' && showIncidentOverlay && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
-        handleApprove(state.incidents[0]?.id);
+        if (state.incidents[0]?.id) {
+          handleApprove(state.incidents[0].id);
+        }
       }
       
       // Escape to veto/dismiss
       if (e.code === 'Escape' && state.operationalState !== 'green') {
         e.preventDefault();
-        handleVeto(state.incidents[0]?.id);
+        if (state.incidents[0]?.id) {
+          handleVeto(state.incidents[0].id);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setOperationalState, state.operationalState, state.incidents, showIncidentOverlay]);
+  }, [setOperationalState, state.operationalState, state.incidents, showIncidentOverlay, handleApprove, handleVeto]);
 
   // Elapsed time counter for active incidents
   useEffect(() => {
@@ -182,26 +206,6 @@ export default function Index() {
       return () => clearInterval(interval);
     }
   }, [state.operationalState]);
-
-  const handleApprove = useCallback((incidentId: string) => {
-    console.log('[INDEX] Approving incident:', incidentId);
-    setShowIncidentOverlay(false);
-    setOperationalState('red');
-    toast({
-      title: "Response Approved",
-      description: "Full emergency response initiated. Good call.",
-    });
-  }, [setOperationalState]);
-
-  const handleVeto = useCallback((incidentId: string) => {
-    console.log('[INDEX] Vetoing incident:', incidentId);
-    setShowIncidentOverlay(false);
-    setOperationalState('green');
-    toast({
-      title: "Alert Dismissed",
-      description: "Returning to normal monitoring.",
-    });
-  }, [setOperationalState]);
 
   const handleMonitorOnly = useCallback(() => {
     console.log('[INDEX] Monitor only selected');

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { CommandCenterState, OperationalState } from "@/types/command-center";
 import { 
@@ -19,6 +19,7 @@ interface CommandMapProps {
   className?: string;
 }
 
+
 /**
  * Center Map (Primary View)
  * 
@@ -32,130 +33,78 @@ interface CommandMapProps {
  * - Wind Direction (Arrows)
  * - Evacuation Zones (When Active)
  */
-export function CommandMap({ state, operationalState, selectedDroneId, mapCenter, className }: CommandMapProps) {
-  const mapRef = useRef<any>(null);
-  const [MapComponent, setMapComponent] = useState<React.ComponentType<any> | null>(null);
-  const [mapError, setMapError] = useState(false);
 
-  // Dynamic import of Leaflet to avoid SSR issues
+export function CommandMap({ state, operationalState, selectedDroneId, mapCenter, className }: CommandMapProps) {
+  const [mapLibs, setMapLibs] = useState<{
+    MapContainer: any;
+    TileLayer: any;
+    Circle: any;
+    Popup: any;
+    useMap: any;
+  } | null>(null);
+  const [mapError, setMapError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const mapInstanceRef = useRef<any>(null);
+
+  // Memoize sensor positions to avoid unnecessary recalculations
+  const sensorPositions = useMemo(() => {
+    return state.sensors?.map((sensor) => ({
+      id: sensor.id,
+      position: sensor.position || [sensor.location.lat, sensor.location.lng],
+      status: sensor.status,
+      lastReading: sensor.lastReading,
+    })) || [];
+  }, [state.sensors]);
+
+  // Memoize drone positions
+  const dronePositions = useMemo(() => {
+    return state.drones?.map((drone) => ({
+      id: drone.id,
+      position: drone.position || [drone.location.lat, drone.location.lng],
+      status: drone.status,
+      battery: drone.battery,
+      task: drone.task,
+      isSelected: selectedDroneId === drone.id,
+    })) || [];
+  }, [state.drones, selectedDroneId]);
+
+  // Load map libraries only once
   useEffect(() => {
     let mounted = true;
+    let cssLoaded = false;
 
     const loadMap = async () => {
       try {
-        // Import Leaflet CSS
-        await import("leaflet/dist/leaflet.css");
+        // Import Leaflet CSS only once
+        if (!cssLoaded) {
+          await import("leaflet/dist/leaflet.css");
+          cssLoaded = true;
+        }
         
         // Import React-Leaflet components
-        const { MapContainer, TileLayer, Marker, Popup, Circle, Polyline } = await import("react-leaflet");
+        const { MapContainer, TileLayer, Circle, Popup, useMap } = await import("react-leaflet");
         const L = await import("leaflet");
 
-        // Fix default marker icons
-        delete (L.Icon.Default.prototype as any)._getIconUrl;
-        L.Icon.Default.mergeOptions({
-          iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-          iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-          shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-        });
+        // Fix default marker icons (only once)
+        if (!(L.Icon.Default.prototype as any)._iconUrlFixed) {
+          delete (L.Icon.Default.prototype as any)._getIconUrl;
+          L.Icon.Default.mergeOptions({
+            iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+            iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+            shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+          });
+          (L.Icon.Default.prototype as any)._iconUrlFixed = true;
+        }
 
         if (mounted) {
-          // Create inline map component
-          const InlineMap = () => (
-            <MapContainer
-              center={mapCenter || [34.0522, -118.2437]}
-              zoom={13}
-              className="w-full h-full rounded-lg"
-              zoomControl={false}
-              ref={mapRef}
-            >
-            <TileLayer
-              attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            />
-            
-            {/* Sensors as cyan dots */}
-            {state.sensors?.map((sensor) => {
-              const position: [number, number] = sensor.position || [sensor.location.lat, sensor.location.lng];
-              return (
-                <Circle
-                  key={sensor.id}
-                  center={position}
-                  radius={50}
-                  pathOptions={{
-                    color: sensor.status === 'alert' ? '#FFB800' : '#00D9FF',
-                    fillColor: sensor.status === 'alert' ? '#FFB800' : '#00D9FF',
-                    fillOpacity: 0.3,
-                  }}
-                >
-                  <Popup>
-                    <div className="text-xs">
-                      <p className="font-bold">{sensor.id}</p>
-                      <p>Reading: {sensor.lastReading}</p>
-                      <p>Status: {sensor.status}</p>
-                    </div>
-                  </Popup>
-                </Circle>
-              );
-            })}
-
-            {/* Drones as markers with selection highlighting */}
-            {state.drones?.map((drone) => {
-              const position: [number, number] = drone.position || [drone.location.lat, drone.location.lng];
-              const isSelected = selectedDroneId === drone.id;
-              
-              return (
-                <Circle
-                  key={drone.id}
-                  center={position}
-                  radius={isSelected ? 80 : 40}
-                  pathOptions={{
-                    color: isSelected ? '#FF851B' : drone.status === 'on_mission' ? '#00C853' : drone.status === 'en_route' ? '#FFB800' : '#00D9FF',
-                    fillColor: isSelected ? '#FF851B' : drone.status === 'on_mission' ? '#00C853' : drone.status === 'en_route' ? '#FFB800' : '#00D9FF',
-                    fillOpacity: isSelected ? 0.6 : 0.4,
-                    weight: isSelected ? 3 : 2,
-                  }}
-                >
-                  <Popup>
-                    <div className="text-xs">
-                      <p className="font-bold">{drone.id}</p>
-                      <p>Battery: {drone.battery}%</p>
-                      <p>Status: {drone.status}</p>
-                      <p>Task: {drone.task || "Standby"}</p>
-                    </div>
-                  </Popup>
-                </Circle>
-              );
-            })}
-
-            {/* Incident marker */}
-            {state.activeIncident && (
-              <Circle
-                center={state.activeIncident.coordinates || [state.activeIncident.location.lat, state.activeIncident.location.lng]}
-                radius={200}
-                pathOptions={{
-                  color: '#FF3B3B',
-                  fillColor: '#FF3B3B',
-                  fillOpacity: 0.2,
-                  weight: 2,
-                }}
-              >
-                <Popup>
-                  <div className="text-xs">
-                    <p className="font-bold text-red-500">{state.activeIncident.title || state.activeIncident.type}</p>
-                    <p>{state.activeIncident.address}</p>
-                  </div>
-                </Popup>
-              </Circle>
-            )}
-          </MapContainer>
-          );
-
-          setMapComponent(() => InlineMap);
+          setMapLibs({ MapContainer, TileLayer, Circle, Popup, useMap });
+          setIsLoading(false);
         }
       } catch (error) {
         console.error("Failed to load map:", error);
         if (mounted) {
           setMapError(true);
+          setIsLoading(false);
         }
       }
     };
@@ -165,21 +114,129 @@ export function CommandMap({ state, operationalState, selectedDroneId, mapCenter
     return () => {
       mounted = false;
     };
-  }, [state]);
+  }, []); // Only run once on mount
+
+  // Memoize the initial center
+  const initialCenter = useMemo(() => mapCenter || [34.0522, -118.2437], [mapCenter]);
+
+  // Render map content
+  const renderMapContent = useCallback(() => {
+    if (mapError) {
+      return <MapFallback state={state} operationalState={operationalState} />;
+    }
+
+    if (isLoading || !mapLibs) {
+      return (
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="text-muted-foreground">Loading map...</div>
+        </div>
+      );
+    }
+
+    const { MapContainer, TileLayer, Circle, Popup, useMap } = mapLibs;
+
+    // Create MapCenterUpdater component inside this scope
+    const MapCenterUpdater = () => {
+      const map = useMap();
+      useEffect(() => {
+        mapInstanceRef.current = map;
+        if (mapCenter && map) {
+          const currentZoom = map.getZoom();
+          map.setView(mapCenter, currentZoom, { animate: true });
+        }
+      }, [mapCenter, map]);
+      return null;
+    };
+
+    return (
+      <MapContainer
+        center={initialCenter}
+        zoom={13}
+        className="w-full h-full rounded-lg"
+        zoomControl={false}
+        key="map-container"
+      >
+        <MapCenterUpdater />
+        <TileLayer
+          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        />
+        
+        {/* Sensors as cyan dots */}
+        {sensorPositions.map((sensor) => (
+          <Circle
+            key={sensor.id}
+            center={sensor.position}
+            radius={50}
+            pathOptions={{
+              color: sensor.status === 'alert' ? '#FFB800' : '#00D9FF',
+              fillColor: sensor.status === 'alert' ? '#FFB800' : '#00D9FF',
+              fillOpacity: 0.3,
+            }}
+          >
+            <Popup>
+              <div className="text-xs">
+                <p className="font-bold">{sensor.id}</p>
+                <p>Reading: {sensor.lastReading}</p>
+                <p>Status: {sensor.status}</p>
+              </div>
+            </Popup>
+          </Circle>
+        ))}
+
+        {/* Drones as markers with selection highlighting */}
+        {dronePositions.map((drone) => (
+          <Circle
+            key={drone.id}
+            center={drone.position}
+            radius={drone.isSelected ? 80 : 40}
+            pathOptions={{
+              color: drone.isSelected ? '#FF851B' : drone.status === 'on_mission' ? '#00C853' : drone.status === 'en_route' ? '#FFB800' : '#00D9FF',
+              fillColor: drone.isSelected ? '#FF851B' : drone.status === 'on_mission' ? '#00C853' : drone.status === 'en_route' ? '#FFB800' : '#00D9FF',
+              fillOpacity: drone.isSelected ? 0.6 : 0.4,
+              weight: drone.isSelected ? 3 : 2,
+            }}
+          >
+            <Popup>
+              <div className="text-xs">
+                <p className="font-bold">{drone.id}</p>
+                <p>Battery: {drone.battery}%</p>
+                <p>Status: {drone.status}</p>
+                <p>Task: {drone.task || "Standby"}</p>
+              </div>
+            </Popup>
+          </Circle>
+        ))}
+
+        {/* Incident marker */}
+        {state.activeIncident && (
+          <Circle
+            center={state.activeIncident.coordinates || [state.activeIncident.location.lat, state.activeIncident.location.lng]}
+            radius={200}
+            pathOptions={{
+              color: '#FF3B3B',
+              fillColor: '#FF3B3B',
+              fillOpacity: 0.2,
+              weight: 2,
+            }}
+          >
+            <Popup>
+              <div className="text-xs">
+                <p className="font-bold text-red-500">{state.activeIncident.title || state.activeIncident.type}</p>
+                <p>{state.activeIncident.address}</p>
+              </div>
+            </Popup>
+          </Circle>
+        )}
+      </MapContainer>
+    );
+  }, [mapError, isLoading, mapLibs, initialCenter, mapCenter, sensorPositions, dronePositions, state.activeIncident, operationalState]);
 
   return (
     <div className={cn("relative w-full h-full rounded-lg overflow-hidden", className)}>
       {/* Map Container */}
       <div className="absolute inset-0 bg-background">
-        {mapError ? (
-          <MapFallback state={state} operationalState={operationalState} />
-        ) : MapComponent ? (
-          <MapComponent />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="text-muted-foreground">Loading map...</div>
-          </div>
-        )}
+        {renderMapContent()}
       </div>
 
       {/* Map Controls (Top-Right) */}
@@ -228,7 +285,7 @@ export function CommandMap({ state, operationalState, selectedDroneId, mapCenter
 
 // Map Control Button
 interface MapControlButtonProps {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   active?: boolean;
   onClick?: () => void;
