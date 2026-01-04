@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { CommandCenterState, OperationalState } from "@/types/command-center";
 import { 
@@ -14,6 +14,8 @@ import {
 interface CommandMapProps {
   state: CommandCenterState;
   operationalState: OperationalState;
+  selectedDroneId?: string | null;
+  mapCenter?: [number, number] | null;
   className?: string;
 }
 
@@ -30,7 +32,8 @@ interface CommandMapProps {
  * - Wind Direction (Arrows)
  * - Evacuation Zones (When Active)
  */
-export function CommandMap({ state, operationalState, className }: CommandMapProps) {
+export function CommandMap({ state, operationalState, selectedDroneId, mapCenter, className }: CommandMapProps) {
+  const mapRef = useRef<any>(null);
   const [MapComponent, setMapComponent] = useState<React.ComponentType<any> | null>(null);
   const [mapError, setMapError] = useState(false);
 
@@ -59,10 +62,11 @@ export function CommandMap({ state, operationalState, className }: CommandMapPro
           // Create inline map component
           const InlineMap = () => (
             <MapContainer
-              center={[34.0522, -118.2437]}
+              center={mapCenter || [34.0522, -118.2437]}
               zoom={13}
               className="w-full h-full rounded-lg"
               zoomControl={false}
+              ref={mapRef}
             >
             <TileLayer
               attribution='&copy; <a href="https://carto.com/">CARTO</a>'
@@ -94,11 +98,23 @@ export function CommandMap({ state, operationalState, className }: CommandMapPro
               );
             })}
 
-            {/* Drones as markers */}
+            {/* Drones as markers with selection highlighting */}
             {state.drones?.map((drone) => {
               const position: [number, number] = drone.position || [drone.location.lat, drone.location.lng];
+              const isSelected = selectedDroneId === drone.id;
+              
               return (
-                <Marker key={drone.id} position={position}>
+                <Circle
+                  key={drone.id}
+                  center={position}
+                  radius={isSelected ? 80 : 40}
+                  pathOptions={{
+                    color: isSelected ? '#FF851B' : drone.status === 'on_mission' ? '#00C853' : drone.status === 'en_route' ? '#FFB800' : '#00D9FF',
+                    fillColor: isSelected ? '#FF851B' : drone.status === 'on_mission' ? '#00C853' : drone.status === 'en_route' ? '#FFB800' : '#00D9FF',
+                    fillOpacity: isSelected ? 0.6 : 0.4,
+                    weight: isSelected ? 3 : 2,
+                  }}
+                >
                   <Popup>
                     <div className="text-xs">
                       <p className="font-bold">{drone.id}</p>
@@ -107,7 +123,7 @@ export function CommandMap({ state, operationalState, className }: CommandMapPro
                       <p>Task: {drone.task || "Standby"}</p>
                     </div>
                   </Popup>
-                </Marker>
+                </Circle>
               );
             })}
 
