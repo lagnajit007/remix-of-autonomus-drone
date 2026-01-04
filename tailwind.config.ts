@@ -57,15 +57,26 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        // Status colors
+        // Status colors (Universal Emergency Standards)
         status: {
           normal: "hsl(var(--status-normal))",
           attention: "hsl(var(--status-attention))",
           critical: "hsl(var(--status-critical))",
+          ai: "hsl(var(--status-ai))",
         },
         // Extended palette
         surface: {
           elevated: "hsl(var(--surface-elevated))",
+        },
+        // Orange/Urgency colors
+        urgency: {
+          DEFAULT: "hsl(var(--primary))",
+          glow: "hsl(var(--orange-glow))",
+        },
+        // AI/Tech cyan
+        ai: {
+          DEFAULT: "hsl(var(--accent))",
+          glow: "hsl(var(--cyan-glow))",
         },
       },
       borderRadius: {
@@ -75,6 +86,16 @@ export default {
       },
       fontFamily: {
         mono: ['ui-monospace', 'SFMono-Regular', '"SF Mono"', 'Menlo', 'Consolas', 'monospace'],
+      },
+      fontSize: {
+        // Minimum 16px for accessibility
+        'base': ['16px', '24px'],
+      },
+      spacing: {
+        // Fixed layout dimensions
+        'sidebar': '280px',
+        'panel': '440px',
+        'topbar': '80px',
       },
       keyframes: {
         "accordion-down": {
@@ -86,8 +107,8 @@ export default {
           to: { height: "0" },
         },
         "pulse-border": {
-          "0%, 100%": { borderColor: "hsl(var(--primary) / 0.2)" },
-          "50%": { borderColor: "hsl(var(--primary) / 0.8)" },
+          "0%, 100%": { borderColor: "hsl(var(--primary) / 0.3)" },
+          "50%": { borderColor: "hsl(var(--primary) / 1)" },
         },
         "pulse-border-amber": {
           "0%, 100%": { borderColor: "hsl(var(--status-attention) / 0.3)" },
@@ -99,6 +120,10 @@ export default {
         },
         "slide-in-right": {
           from: { transform: "translateX(100%)", opacity: "0" },
+          to: { transform: "translateX(0)", opacity: "1" },
+        },
+        "slide-in-left": {
+          from: { transform: "translateX(-100%)", opacity: "0" },
           to: { transform: "translateX(0)", opacity: "1" },
         },
         "slide-in-top": {
@@ -125,6 +150,7 @@ export default {
         "pulse-border-amber": "pulse-border-amber 1.5s ease-in-out infinite",
         "pulse-border-red": "pulse-border-red 1s ease-in-out infinite",
         "slide-in-right": "slide-in-right 0.3s ease-out",
+        "slide-in-left": "slide-in-left 0.3s ease-out",
         "slide-in-top": "slide-in-top 0.3s ease-out",
         "fade-in": "fade-in 0.3s ease-out",
         "scale-in": "scale-in 0.2s ease-out",

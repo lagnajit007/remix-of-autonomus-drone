@@ -4,106 +4,126 @@
 
 /* FlytBase Emergency Command Center - Design System
    Mission-critical dark UI optimized for 24/7 operations
+   Reality-first: Clarity over cleverness, stress-reducing
    All colors MUST be HSL.
 */
 
 @layer base {
   :root {
-    /* FlytBase Command Center - Dark Theme Only */
-    --background: 216 50% 10%;
+    /* FlytBase Command Center - Dark Theme Only
+       Base: Deep Navy Black (#0A1628)
+       Primary: Orange (#FF851B) for urgency/actions
+       AI/Tech: Cyan (#00D9FF) for automated processes
+    */
+    
+    /* Core Background - Deep Navy Black */
+    --background: 216 71% 9%;
+    --background-gradient: 217 54% 11%;
     --foreground: 0 0% 100%;
 
-    --card: 218 40% 13%;
+    /* Cards - Dark Slate */
+    --card: 220 30% 10%;
     --card-foreground: 0 0% 100%;
 
-    --popover: 218 40% 13%;
+    --popover: 220 30% 10%;
     --popover-foreground: 0 0% 100%;
 
-    --primary: 187 100% 50%;
-    --primary-foreground: 216 50% 10%;
+    /* Primary - Orange for urgency/actions */
+    --primary: 28 100% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 218 30% 18%;
+    /* Secondary - Darker slate */
+    --secondary: 218 30% 15%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 218 25% 20%;
+    --muted: 218 25% 18%;
     --muted-foreground: 214 20% 69%;
 
+    /* Accent - Cyan for AI/tech only */
     --accent: 187 100% 50%;
-    --accent-foreground: 216 50% 10%;
+    --accent-foreground: 216 71% 9%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 100% 62%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 187 100% 50%;
-    --input: 218 30% 18%;
-    --ring: 187 100% 50%;
+    /* Borders - Orange at 30% normally */
+    --border: 28 100% 55%;
+    --input: 218 30% 15%;
+    --ring: 28 100% 55%;
 
     --radius: 0.5rem;
 
-    /* Status Colors */
-    --status-normal: 145 100% 39%;
-    --status-attention: 43 100% 50%;
-    --status-critical: 0 100% 62%;
+    /* Semantic Status Colors (Universal Emergency Standards) */
+    --status-normal: 145 100% 39%;      /* Green: Safe, completed */
+    --status-attention: 43 100% 50%;    /* Amber: Attention needed */
+    --status-critical: 0 100% 62%;      /* Red: Immediate action */
+    --status-ai: 187 100% 50%;          /* Cyan: AI action */
     
     /* Extended Palette */
-    --surface-elevated: 218 35% 16%;
+    --surface-elevated: 218 35% 12%;
+    --orange-glow: 28 100% 55%;
     --cyan-glow: 187 100% 50%;
     
-    /* Sidebar */
-    --sidebar-background: 218 45% 11%;
+    /* Sidebar - Fixed Left Panel */
+    --sidebar-background: 216 71% 9%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 187 100% 50%;
-    --sidebar-primary-foreground: 216 50% 10%;
-    --sidebar-accent: 218 30% 18%;
+    --sidebar-primary: 28 100% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 218 30% 15%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 218 30% 20%;
-    --sidebar-ring: 187 100% 50%;
+    --sidebar-border: 28 100% 55%;
+    --sidebar-ring: 28 100% 55%;
+
+    /* Panel - Fixed Right Panel */
+    --panel-background: 220 30% 10%;
+    --panel-border: 28 100% 55%;
   }
 
   .dark {
     /* Same as root - this is a dark-only interface */
-    --background: 216 50% 10%;
+    --background: 216 71% 9%;
+    --background-gradient: 217 54% 11%;
     --foreground: 0 0% 100%;
 
-    --card: 218 40% 13%;
+    --card: 220 30% 10%;
     --card-foreground: 0 0% 100%;
 
-    --popover: 218 40% 13%;
+    --popover: 220 30% 10%;
     --popover-foreground: 0 0% 100%;
 
-    --primary: 187 100% 50%;
-    --primary-foreground: 216 50% 10%;
+    --primary: 28 100% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 218 30% 18%;
+    --secondary: 218 30% 15%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 218 25% 20%;
+    --muted: 218 25% 18%;
     --muted-foreground: 214 20% 69%;
 
     --accent: 187 100% 50%;
-    --accent-foreground: 216 50% 10%;
+    --accent-foreground: 216 71% 9%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 100% 62%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 187 100% 50%;
-    --input: 218 30% 18%;
-    --ring: 187 100% 50%;
+    --border: 28 100% 55%;
+    --input: 218 30% 15%;
+    --ring: 28 100% 55%;
 
-    --sidebar-background: 218 45% 11%;
+    --sidebar-background: 216 71% 9%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 187 100% 50%;
-    --sidebar-primary-foreground: 216 50% 10%;
-    --sidebar-accent: 218 30% 18%;
+    --sidebar-primary: 28 100% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 218 30% 15%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 218 30% 20%;
-    --sidebar-ring: 187 100% 50%;
+    --sidebar-border: 28 100% 55%;
+    --sidebar-ring: 28 100% 55%;
   }
 }
 
 @layer base {
   * {
-    @apply border-border/20;
+    @apply border-border/30;
   }
 
   body {
@@ -113,17 +133,31 @@
 }
 
 @layer components {
-  /* Pulse animation for sensors and alerts */
+  /* Pulse animation for orange alerts */
+  .pulse-orange {
+    animation: pulse-orange 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @keyframes pulse-orange {
+    0%, 100% {
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.7);
+    }
+    50% {
+      box-shadow: 0 0 0 8px hsl(var(--primary) / 0);
+    }
+  }
+
+  /* Cyan pulse for AI actions */
   .pulse-cyan {
     animation: pulse-cyan 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
   
   @keyframes pulse-cyan {
     0%, 100% {
-      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.7);
+      box-shadow: 0 0 0 0 hsl(var(--accent) / 0.7);
     }
     50% {
-      box-shadow: 0 0 0 8px hsl(var(--primary) / 0);
+      box-shadow: 0 0 0 8px hsl(var(--accent) / 0);
     }
   }
 
@@ -154,8 +188,12 @@
   }
 
   /* Glow effects */
-  .glow-cyan {
+  .glow-orange {
     box-shadow: 0 0 20px hsl(var(--primary) / 0.3), 0 0 40px hsl(var(--primary) / 0.1);
+  }
+
+  .glow-cyan {
+    box-shadow: 0 0 20px hsl(var(--accent) / 0.3), 0 0 40px hsl(var(--accent) / 0.1);
   }
 
   .glow-red {
@@ -179,9 +217,26 @@
     @apply bg-[hsl(var(--status-critical))];
   }
 
-  /* Card with cyan border */
+  .status-dot-ai {
+    @apply bg-[hsl(var(--status-ai))];
+  }
+
+  /* Command card with orange border (30% default, 100% on hover/active) */
   .command-card {
-    @apply bg-card border border-primary/20 rounded-lg;
+    @apply bg-card border border-primary/30 rounded-lg transition-colors;
+  }
+
+  .command-card:hover {
+    @apply border-primary/50;
+  }
+
+  .command-card-active {
+    @apply bg-card border border-primary rounded-lg;
+  }
+
+  /* Panel sections */
+  .panel-section {
+    @apply bg-card/50 border border-primary/20 rounded-lg p-3;
   }
 
   /* Monospace data display */
@@ -191,6 +246,21 @@
   }
 
   /* Slide in animation */
+  .slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+  }
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
   .slide-in-top {
     animation: slideInTop 0.3s ease-out;
   }
@@ -224,67 +294,83 @@
   .screen-dim {
     @apply fixed inset-0 bg-black/40 z-40;
   }
-}
 
-/* Bento Grid System */
-.bento-grid-calm {
-  display: grid;
-  grid-template-columns: 280px 1fr 300px;
-  grid-template-rows: auto 1fr auto;
-  grid-template-areas:
-    "telemetry map alerts"
-    "mission map alerts"
-    "comms playback playback";
-}
+  /* Fixed Layout Structure */
+  .command-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr 440px;
+    grid-template-rows: 80px 1fr;
+    height: 100vh;
+    width: 100%;
+  }
 
-.bento-grid-alert {
-  display: grid;
-  grid-template-columns: 200px 1fr 350px;
-  grid-template-rows: auto 1fr auto;
-  grid-template-areas:
-    "telemetry map alerts"
-    "mission map alerts"
-    "comms playback playback";
-}
+  .command-topbar {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
 
-.bento-grid-critical {
-  display: grid;
-  grid-template-columns: 280px 1fr 320px;
-  grid-template-rows: auto 1fr auto;
-  grid-template-areas:
-    "telemetry map alerts"
-    "mission map command"
-    "comms playback playback";
-}
+  .command-sidebar {
+    grid-column: 1;
+    grid-row: 2;
+    overflow-y: auto;
+  }
 
-.bento-area-telemetry { grid-area: telemetry; }
-.bento-area-map { grid-area: map; }
-.bento-area-alerts { grid-area: alerts; }
-.bento-area-mission { grid-area: mission; }
-.bento-area-comms { grid-area: comms; }
-.bento-area-playback { grid-area: playback; }
-.bento-area-command { grid-area: command; }
+  .command-map {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+  }
+
+  .command-panel {
+    grid-column: 3;
+    grid-row: 2;
+    overflow-y: auto;
+  }
+}
 
 /* Leaflet map dark theme overrides */
 .leaflet-container {
-  background: hsl(216 50% 10%) !important;
+  background: hsl(216 71% 9%) !important;
 }
 
 .leaflet-control-zoom a {
-  background: hsl(218 40% 13%) !important;
+  background: hsl(220 30% 10%) !important;
   color: hsl(0 0% 100%) !important;
-  border-color: hsl(187 100% 50% / 0.2) !important;
+  border-color: hsl(28 100% 55% / 0.3) !important;
 }
 
 .leaflet-control-zoom a:hover {
-  background: hsl(218 30% 18%) !important;
+  background: hsl(218 30% 15%) !important;
+  border-color: hsl(28 100% 55% / 0.5) !important;
 }
 
 .leaflet-control-attribution {
-  background: hsl(218 40% 13% / 0.8) !important;
+  background: hsl(220 30% 10% / 0.9) !important;
   color: hsl(214 20% 69%) !important;
 }
 
 .leaflet-control-attribution a {
-  color: hsl(187 100% 50%) !important;
+  color: hsl(28 100% 55%) !important;
+}
+
+/* Scrollbar styling for panels */
+.command-sidebar::-webkit-scrollbar,
+.command-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.command-sidebar::-webkit-scrollbar-track,
+.command-panel::-webkit-scrollbar-track {
+  background: hsl(216 71% 9%);
+}
+
+.command-sidebar::-webkit-scrollbar-thumb,
+.command-panel::-webkit-scrollbar-thumb {
+  background: hsl(28 100% 55% / 0.3);
+  border-radius: 3px;
+}
+
+.command-sidebar::-webkit-scrollbar-thumb:hover,
+.command-panel::-webkit-scrollbar-thumb:hover {
+  background: hsl(28 100% 55% / 0.5);
 }
