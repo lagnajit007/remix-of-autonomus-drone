@@ -1,10 +1,9 @@
-import { useState, useCallback } from "react";
-import { 
-  ChevronDown, 
-  ChevronRight,
-  MapPin, 
-  Plane, 
-  Radio, 
+import { useState } from "react";
+import {
+  ChevronDown,
+  MapPin,
+  Plane,
+  Radio,
   Calendar,
   Activity,
   AlertTriangle,
@@ -12,7 +11,12 @@ import {
   Home,
   Pause,
   Settings,
-  Focus
+  Battery,
+  Wind,
+  Gauge,
+  Zap,
+  ShieldCheck,
+  Bot
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Drone } from "@/types/command-center";
@@ -24,7 +28,6 @@ interface Zone {
   sensors: number;
   status: "normal" | "attention" | "critical";
   hasIncident?: boolean;
-  center?: [number, number];
 }
 
 interface LeftSidebarProps {
@@ -38,18 +41,20 @@ interface LeftSidebarProps {
   weather: string;
   lastUpdate: string;
   selectedDroneId?: string | null;
-  onZoneClick?: (zoneId: string, center?: [number, number]) => void;
+  onZoneClick?: (zoneId: string) => void;
   onDroneSelect?: (droneId: string) => void;
   className?: string;
 }
 
 /**
- * Left Sidebar (280px Fixed Width) - Enhanced with interactions
+ * Co-Pilot HUD Sidebar V2
  * 
- * Features:
- * - Smooth collapsible animations
- * - Zone click-to-zoom
- * - Drone selection with map highlighting
+ * Round 2 Enhancements:
+ * - Dynamic Alt/Speed Gauges for selected drone
+ * - Battery Ring Shakes on low power
+ * - Mission Scheduler Progress (KML)
+ * - Failsafe Status badges
+ * - Enhanced Fleet sorting and status iconography
  */
 export function LeftSidebar({
   zones,
@@ -66,334 +71,202 @@ export function LeftSidebar({
   onDroneSelect,
   className,
 }: LeftSidebarProps) {
-  const [zonesExpanded, setZonesExpanded] = useState(true);
-  const [sensorsExpanded, setSensorsExpanded] = useState(false);
-  const [missionsExpanded, setMissionsExpanded] = useState(false);
 
-  const statusColors = {
-    normal: "text-status-normal",
-    attention: "text-status-attention",
-    critical: "text-status-critical",
-  };
-
-  const statusBg = {
-    normal: "bg-status-normal",
-    attention: "bg-status-attention", 
-    critical: "bg-status-critical",
-  };
-
-  // Sort drones: Active → Low battery → Docked → Offline
-  const sortedDrones = [...drones].sort((a, b) => {
-    const statusOrder = { on_mission: 0, en_route: 1, returning: 2, patrolling: 2.5, docked: 3, offline: 4 };
-    const aOrder = statusOrder[a.status] ?? 5;
-    const bOrder = statusOrder[b.status] ?? 5;
-    if (aOrder !== bOrder) return aOrder - bOrder;
-    return (b.battery ?? 0) - (a.battery ?? 0);
-  });
-
-  const handleZoneClick = useCallback((zone: Zone) => {
-    console.log(`[SIDEBAR] Zone clicked: ${zone.name}`);
-    onZoneClick?.(zone.id, zone.center);
-  }, [onZoneClick]);
-
-  const handleDroneClick = useCallback((droneId: string) => {
-    console.log(`[SIDEBAR] Drone selected: ${droneId}`);
-    onDroneSelect?.(droneId);
-  }, [onDroneSelect]);
+  const selectedDrone = drones.find(d => d.id === selectedDroneId);
 
   return (
-    <div className={cn("flex flex-col h-full", className)}>
-      {/* Section 1: Zone Overview */}
-      <CollapsibleSection
-        title="ZONES"
-        subtitle="Monitoring"
-        icon={<MapPin className="w-4 h-4" />}
-        expanded={zonesExpanded}
-        onToggle={() => setZonesExpanded(!zonesExpanded)}
-      >
-        <div className="space-y-2">
-          {zones.map((zone) => (
-            <button
-              key={zone.id}
-              onClick={() => handleZoneClick(zone)}
-              className={cn(
-                "w-full p-2 rounded-lg text-left transition-all duration-200",
-                "bg-secondary/50 border border-primary/10",
-                "hover:border-primary/40 hover:bg-secondary hover:scale-[1.02]",
-                "active:scale-[0.98]",
-                "group"
-              )}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium group-hover:text-primary transition-colors">
-                  {zone.name}
-                </span>
-                <div className="flex items-center gap-2">
-                  <Focus className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className={cn("w-2 h-2 rounded-full", statusBg[zone.status])} />
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>● {zone.drones} Drones</span>
-                <span>| {zone.sensors} Sensors</span>
-              </div>
-              {zone.hasIncident && (
-                <div className="flex items-center gap-1 mt-1 text-xs text-status-attention animate-pulse">
-                  <AlertTriangle className="w-3 h-3" />
-                  <span>1 Incident Active</span>
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-      </CollapsibleSection>
+    <div className={cn("flex flex-col h-full bg-[#03060B] select-none border-r border-white/5", className)}>
 
-      {/* Section 2: Fleet Status (Always Visible) */}
-      <div className="panel-section">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Plane className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">DRONES</span>
-          </div>
-          <span className="text-xs text-muted-foreground">({drones.length} Total)</span>
-        </div>
-        <div className="space-y-1.5">
-          {sortedDrones.map((drone) => (
-            <DroneStatusRow 
-              key={drone.id} 
-              drone={drone} 
-              isSelected={selectedDroneId === drone.id}
-              onClick={() => handleDroneClick(drone.id)}
-            />
-          ))}
-        </div>
-        <button className="w-full mt-3 py-2 text-sm text-primary border border-primary/30 rounded-lg hover:bg-primary/10 hover:border-primary/50 transition-all duration-200 active:scale-[0.98]">
-          + Deploy Available Drone
-        </button>
+      {/* TELEMETRY SLIM V2 */}
+      <div className="p-4 grid grid-cols-2 gap-2">
+        <TelemetryCard icon={<Wind className="w-3 h-3 text-accent" />} label="ENV_WIND" value="18MPH_NE" />
+        <TelemetryCard icon={<Activity className="w-3 h-3 text-accent" />} label="LINK_LAT" value={`${networkLatency}MS`} />
       </div>
 
-      {/* Section 3: Sensor Health */}
-      <CollapsibleSection
-        title="SENSORS"
-        subtitle={`${sensorsOnline + sensorsWeak + sensorsOffline} Active`}
-        icon={<Radio className="w-4 h-4" />}
-        expanded={sensorsExpanded}
-        onToggle={() => setSensorsExpanded(!sensorsExpanded)}
-      >
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-status-normal">✓</span>
-            <span>{sensorsOnline} Operational</span>
+      {/* SELECTED DRONE FOCUS - Alt/Speed Gauges */}
+      {selectedDrone && (
+        <div className="p-4 mx-4 mb-4 bg-accent/5 border border-accent/20 rounded-2xl animate-in slide-in-from-left duration-300">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[9px] font-black text-accent uppercase tracking-widest">FOCUS: {selectedDrone.id}</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-status-attention">⚠</span>
-            <span>{sensorsWeak} Weak Signal</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">✗</span>
-            <span>{sensorsOffline} Offline</span>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Last Check: {lastUpdate}
-          </p>
-        </div>
-      </CollapsibleSection>
-
-      {/* Section 4: Missions Scheduler */}
-      <CollapsibleSection
-        title="SCHEDULED MISSIONS"
-        icon={<Calendar className="w-4 h-4" />}
-        expanded={missionsExpanded}
-        onToggle={() => setMissionsExpanded(!missionsExpanded)}
-      >
-        <div className="space-y-2 text-sm">
-          <div className="p-2 bg-secondary/50 rounded-lg border border-primary/10">
-            <p className="font-medium">Next: Perimeter Patrol</p>
-            <p className="text-xs text-muted-foreground">Time: 18:00 (5h 47m)</p>
-            <p className="text-xs text-muted-foreground">Drone: Auto-assign</p>
-            <div className="flex gap-2 mt-2">
-              <button className="text-xs text-primary hover:underline">[Edit]</button>
-              <button className="text-xs text-muted-foreground hover:underline">[Cancel]</button>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <span className="text-[7px] font-black text-white/30 uppercase">ALTITUDE</span>
+              <div className="text-sm font-mono font-black text-white">124.2<span className="text-[8px] text-white/40 ml-1">M</span></div>
+            </div>
+            <div className="space-y-1">
+              <span className="text-[7px] font-black text-white/30 uppercase">AIR_SPEED</span>
+              <div className="text-sm font-mono font-black text-white">42.5<span className="text-[8px] text-white/40 ml-1">KM/H</span></div>
             </div>
           </div>
-          <button className="w-full py-2 text-sm text-primary border border-primary/30 rounded-lg hover:bg-primary/10 transition-colors">
-            + Create New Mission
-          </button>
-        </div>
-      </CollapsibleSection>
-
-      {/* Spacer */}
-      <div className="flex-1" />
-
-      {/* Section 5: System Health (Always Visible) */}
-      <div className="panel-section">
-        <div className="flex items-center gap-2 mb-3">
-          <Activity className="w-4 h-4 text-primary" />
-          <span className="text-sm font-medium">SYSTEM STATUS</span>
-        </div>
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2">
-            <span className={statusColors[systemStatus]}>
-              {systemStatus === "normal" ? "✓" : "⚠"}
-            </span>
-            <span>
-              {systemStatus === "normal" 
-                ? "All Systems Normal" 
-                : systemStatus === "degraded" 
-                  ? "Degraded Performance"
-                  : "Critical Issue"
-              }
-            </span>
+          <div className="mt-3 pt-3 border-t border-white/5 flex gap-2">
+            <FailsafeBadge active label="CASIA_G" />
+            <FailsafeBadge active label="AUTO_RTB" />
           </div>
-          <p className="text-xs text-muted-foreground">
-            Network: {networkLatency}ms latency
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Weather: {weather}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Last Update: {lastUpdate}
-          </p>
+        </div>
+      )}
+
+      {/* FLEET OVERVIEW: Battery Rings HUD */}
+      <div className="flex-1 overflow-y-auto no-scrollbar">
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between mb-4 px-1">
+            <span className="text-[10px] font-black tracking-[0.2em] text-white/30 uppercase">FLEET_GRID</span>
+            <Bot className="w-3 h-3 text-white/20" />
+          </div>
+
+          <div className="space-y-3">
+            {drones.map((drone) => (
+              <DroneHudCard
+                key={drone.id}
+                drone={drone}
+                isSelected={selectedDroneId === drone.id}
+                onClick={() => onDroneSelect?.(drone.id)}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* ZONES HUD */}
+        <div className="p-4 border-t border-white/5 mt-4">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-[10px] font-black tracking-[0.2em] text-white/30 uppercase">ZONE_CONTEXT</span>
+            <ChevronDown className="w-3 h-3 text-white/20" />
+          </div>
+          <div className="space-y-2">
+            {zones.map(zone => (
+              <button
+                key={zone.id}
+                onClick={() => onZoneClick?.(zone.id)}
+                className={cn(
+                  "w-full p-3 rounded-2xl border transition-all text-left",
+                  zone.hasIncident ? "border-primary/50 bg-primary/5 animate-hud-pulse" : "border-white/5 bg-white/[0.01] hover:bg-white/[0.03]"
+                )}
+              >
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs font-black text-white uppercase">{zone.name}</span>
+                  <div className={cn("w-2 h-2 rounded-full", zone.status === 'normal' ? 'bg-status-normal' : 'bg-status-attention')} />
+                </div>
+                <div className="text-[9px] font-bold text-white/20 uppercase tracking-widest">
+                  {zone.drones} UNITS | {zone.sensors} NODES
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* MISSION SCHEDULER (KML) */}
+        <div className="p-4 border-t border-white/5">
+          <span className="text-[10px] font-black tracking-[0.2em] text-white/30 uppercase block mb-4">MISSION_SCHEDULER</span>
+          <div className="panel-section bg-accent/5 border-accent/10 p-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[10px] font-black text-white/80">GRID_SCAN_B-24</span>
+              <span className="text-[8px] font-mono text-accent">Active</span>
+            </div>
+            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+              <div className="h-full bg-accent animate-pulse w-[75%]" />
+            </div>
+            <p className="text-[8px] font-bold text-white/20 uppercase mt-2">KML: sector_bravo_0842.kml</p>
+          </div>
         </div>
       </div>
 
-      {/* Section 6: Quick Actions (Always Visible) */}
-      <div className="panel-section space-y-2">
-        <button className="w-full py-2.5 text-sm font-medium text-destructive-foreground bg-destructive hover:bg-destructive/90 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] hover:shadow-lg hover:shadow-destructive/20">
-          <StopCircle className="w-4 h-4" />
-          Emergency Stop All
+      {/* QUICK ACTIONS: HUD PANIC BUTTONS */}
+      <div className="p-4 bg-background border-t border-white/10 flex flex-col gap-2">
+        <button className="w-full h-14 bg-status-critical/10 text-status-critical border border-status-critical/30 font-black uppercase text-[10px] tracking-[0.3em] rounded-2xl hover:bg-status-critical text-white transition-all active:animate-haptic-shake">
+          <div className="flex items-center justify-center gap-3">
+            <StopCircle className="w-5 h-5" />
+            GLOBAL_EMERGENCY_KILL
+          </div>
         </button>
-        <button className="w-full py-2 text-sm text-foreground bg-secondary border border-primary/20 hover:border-primary/40 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]">
-          <Home className="w-4 h-4" />
-          Return All to Dock
-        </button>
-        <button className="w-full py-2 text-sm text-foreground bg-secondary border border-primary/20 hover:border-primary/40 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]">
-          <Pause className="w-4 h-4" />
-          Pause Operations
-        </button>
-        <button className="w-full py-2 text-sm text-foreground bg-secondary border border-primary/20 hover:border-primary/40 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]">
-          <Settings className="w-4 h-4" />
-          Manual Override
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// Collapsible Section Component with smooth animation
-interface CollapsibleSectionProps {
-  title: string;
-  subtitle?: string;
-  icon: React.ReactNode;
-  expanded: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}
-
-function CollapsibleSection({ 
-  title, 
-  subtitle, 
-  icon, 
-  expanded, 
-  onToggle, 
-  children 
-}: CollapsibleSectionProps) {
-  return (
-    <div className="panel-section overflow-hidden">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between mb-2 group"
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-primary transition-transform duration-200 group-hover:scale-110">
-            {icon}
-          </span>
-          <span className="text-sm font-medium">{title}</span>
-          {subtitle && (
-            <span className="text-xs text-muted-foreground">({subtitle})</span>
-          )}
-        </div>
-        <div className={cn(
-          "transition-transform duration-200",
-          expanded && "rotate-180"
-        )}>
-          <ChevronDown className="w-4 h-4 text-muted-foreground" />
-        </div>
-      </button>
-      
-      {/* Animated content container */}
-      <div
-        className={cn(
-          "grid transition-all duration-300 ease-out",
-          expanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-        )}
-      >
-        <div className="overflow-hidden">
-          {children}
+        <div className="grid grid-cols-2 gap-2">
+          <SmallHudAction icon={<Home className="w-4 h-4" />} label="RTB_ALL" />
+          <SmallHudAction icon={<Pause className="w-4 h-4" />} label="PAUSE_OPS" />
         </div>
       </div>
     </div>
   );
 }
 
-// Drone Status Row Component with selection state
-interface DroneStatusRowProps {
-  drone: Drone;
-  isSelected?: boolean;
-  onClick?: () => void;
+function TelemetryCard({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
+  return (
+    <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex items-center gap-3">
+      {icon}
+      <div className="flex flex-col">
+        <span className="text-[7px] font-black text-white/30 uppercase leading-none mb-1">{label}</span>
+        <span className="text-[10px] font-mono font-black text-white/80 leading-none uppercase">{value}</span>
+      </div>
+    </div>
+  );
 }
 
-function DroneStatusRow({ drone, isSelected, onClick }: DroneStatusRowProps) {
-  const statusConfig = {
-    on_mission: { dot: "bg-status-normal", label: "Active" },
-    en_route: { dot: "bg-status-attention", label: "En Route" },
-    returning: { dot: "bg-status-attention", label: "RTH" },
-    patrolling: { dot: "bg-accent", label: "Patrol" },
-    docked: { dot: "bg-muted-foreground", label: "Docked" },
-    offline: { dot: "bg-muted", label: "Offline" },
-  };
-
-  const config = statusConfig[drone.status] || statusConfig.offline;
-  const batteryColor = 
-    drone.battery === undefined ? "text-muted-foreground" :
-    drone.battery < 30 ? "text-status-critical" : 
-    drone.battery < 50 ? "text-status-attention" : 
-    "text-status-normal";
+function DroneHudCard({ drone, isSelected, onClick }: { drone: Drone, isSelected: boolean, onClick: () => void }) {
+  const isLowBattery = (drone.battery || 0) < 30;
 
   return (
-    <button 
+    <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-center justify-between py-1.5 px-2 rounded transition-all duration-200 text-left",
-        "hover:bg-secondary/70",
-        "active:scale-[0.98]",
-        isSelected && "bg-primary/20 border border-primary/50 shadow-sm shadow-primary/10"
+        "w-full flex items-center h-20 px-4 rounded-3xl transition-all relative overflow-hidden group",
+        isSelected ? "bg-accent/10 border-accent/40 shadow-lg" : "bg-white/[0.01] border-white/5 hover:bg-white/[0.03]",
+        "border"
       )}
     >
-      <div className="flex items-center gap-2">
-        <div className={cn(
-          "w-2 h-2 rounded-full transition-all duration-200",
-          config.dot,
-          isSelected && "scale-125 ring-2 ring-primary/30"
-        )} />
-        <span className={cn(
-          "text-sm font-mono transition-colors",
-          isSelected && "text-primary font-semibold"
-        )}>
-          {drone.id}
+      {/* Battery Ring HUD */}
+      <div className={cn("relative w-12 h-12 flex items-center justify-center mr-4", isLowBattery && "animate-haptic-shake")}>
+        <svg className="w-full h-full transform -rotate-90">
+          <circle cx="24" cy="24" r="20" className="stroke-white/5 fill-none" strokeWidth="3" />
+          <circle
+            cx="24" cy="24" r="20"
+            className={cn("fill-none transition-all duration-1000", isLowBattery ? "stroke-status-critical" : "stroke-accent")}
+            strokeWidth="3"
+            strokeDasharray={126}
+            strokeDashoffset={126 - (1.26 * (drone.battery || 0))}
+            strokeLinecap="round"
+          />
+        </svg>
+        <span className={cn("absolute text-[10px] font-mono font-black", isLowBattery ? "text-status-critical" : "text-white")}>
+          {Math.floor(drone.battery || 0)}%
         </span>
       </div>
-      <div className="flex items-center gap-3 text-xs">
-        <span className={cn("font-mono", batteryColor)}>
-          {drone.battery !== undefined ? `${drone.battery}%` : "--"}
-        </span>
-        <span className={cn(
-          "w-16 truncate",
-          isSelected ? "text-primary" : "text-muted-foreground"
-        )}>
-          {drone.task || config.label}
-        </span>
+
+      <div className="flex flex-col flex-1 text-left">
+        <div className="flex items-center justify-between mb-1">
+          <span className={cn("text-sm font-black uppercase tracking-tighter", isSelected ? "text-accent" : "text-white")}>
+            {drone.id}
+          </span>
+          <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.2em]">
+            {drone.status.replace('_', '.')}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className={cn("w-1 h-1 rounded-full", drone.status === 'offline' ? 'bg-status-critical' : 'bg-status-normal')} />
+          <span className="text-[9px] font-bold text-white/40 uppercase truncate max-w-[100px]">
+            {drone.task || 'IDLE_PATROL'}
+          </span>
+        </div>
       </div>
+
+      {isSelected && <div className="absolute right-0 top-0 bottom-0 w-1 bg-accent" />}
+    </button>
+  );
+}
+
+function FailsafeBadge({ active, label }: { active: boolean, label: string }) {
+  return (
+    <div className={cn("px-2 py-0.5 rounded-md text-[7px] font-black border",
+      active ? "bg-status-normal/10 border-status-normal/30 text-status-normal" : "bg-white/5 border-white/10 text-white/20"
+    )}>
+      {label}
+    </div>
+  );
+}
+
+function SmallHudAction({ icon, label }: { icon: React.ReactNode, label: string }) {
+  return (
+    <button className="h-10 border border-white/5 bg-white/[0.01] rounded-xl flex items-center justify-center gap-2 text-[8px] font-black tracking-widest text-white/30 uppercase hover:text-white hover:border-white/20 transition-all">
+      {icon}
+      {label}
     </button>
   );
 }

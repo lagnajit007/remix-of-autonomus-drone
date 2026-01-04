@@ -1,4 +1,4 @@
-import { Search, Bell, Hexagon, User, Clock } from "lucide-react";
+import { Search, Bell, Hexagon, User, Clock, Terminal, Activity, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OperationalState } from "@/types/command-center";
 
@@ -12,139 +12,119 @@ interface TopBarProps {
 }
 
 /**
- * Top Bar (80px Fixed Height)
+ * Co-Pilot HUD TopBar (80px Fixed)
  * 
- * Elements (left to right):
- * 1. Logo (120px) - Click returns to overview (panic button)
- * 2. Global Search (300px) - Cmd/Ctrl+K, fuzzy matching
- * 3. Active Incidents Badge (150px) - Pulses if Priority 1
- * 4. Notifications Bell (60px) - System alerts only
- * 5. Operator Profile (120px) - Name, shift timer
+ * Design: High-density, tactical navigation
+ * Elements: Logo (Panic), Search (⌘K), Active Banners, Operator Meta
  */
 export function TopBar({
   operationalState,
   activeIncidents,
   alertsCount,
-  shiftTime = "4h 23m",
-  operatorName = "Operator",
+  shiftTime = "4H_23M",
+  operatorName = "CHEN.S",
   className,
 }: TopBarProps) {
   const stateColors = {
-    green: "bg-status-normal",
-    amber: "bg-status-attention", 
-    red: "bg-status-critical",
-  };
-
-  const statePulse = {
-    green: "",
-    amber: "animate-pulse",
-    red: "animate-pulse",
+    green: "bg-status-normal shadow-status-normal/20",
+    amber: "bg-status-attention shadow-status-attention/20",
+    red: "bg-status-critical shadow-status-critical/20",
   };
 
   return (
-    <div className={cn("flex items-center justify-between h-full", className)}>
-      {/* Left Section: Logo + Search */}
-      <div className="flex items-center gap-6">
-        {/* Logo - Panic button to return to overview */}
-        <button 
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-          title="Return to Overview"
+    <div className={cn("flex items-center justify-between w-full h-[80px] px-6 bg-[#050B14] border-b border-white/10", className)}>
+
+      {/* LEFT: Branding & Command Search */}
+      <div className="flex items-center gap-10">
+        <button
+          onClick={() => window.location.reload()}
+          className="flex items-center gap-3 transition-all hover:scale-105 group"
+          title="KILL_COMMAND - RETURN TO BASE"
         >
-          <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center border border-primary/30">
-            <Hexagon className="w-6 h-6 text-primary" />
+          <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/40 group-hover:border-primary transition-all shadow-lg">
+            <Hexagon className="w-6 h-6 text-primary group-hover:rotate-90 transition-transform duration-500" strokeWidth={3} />
           </div>
-          <span className="font-semibold text-lg tracking-tight">FlytBase</span>
+          <div className="flex flex-col text-left">
+            <span className="font-black text-xl tracking-tighter text-white leading-none">FLYTBASE</span>
+            <span className="text-[8px] font-black text-primary tracking-[0.4em] leading-none mt-1 opacity-60">TACTICAL_OS</span>
+          </div>
         </button>
 
-        {/* Global Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="relative group hidden lg:block">
+          <Terminal className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-primary transition-colors" />
           <input
             type="text"
-            placeholder="Search drones, incidents, locations..."
+            placeholder="RUN_COMMAND (⌘K)..."
             className={cn(
-              "w-[300px] h-10 pl-10 pr-4 rounded-lg",
-              "bg-secondary border border-primary/20",
-              "text-foreground placeholder:text-muted-foreground",
-              "focus:outline-none focus:border-primary/50",
-              "transition-colors"
+              "w-[340px] h-11 pl-12 pr-12 rounded-xl",
+              "bg-white/[0.02] border border-white/10",
+              "text-xs font-bold text-white placeholder:text-white/20",
+              "focus:outline-none focus:border-primary/50 focus:bg-white/[0.05]",
+              "transition-all duration-300 uppercase tracking-widest"
             )}
           />
-          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+          <kbd className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-white/20 bg-white/5 px-2 py-1 rounded-md border border-white/5">
             ⌘K
           </kbd>
         </div>
       </div>
 
-      {/* Center Section: Active Incidents */}
-      <div className="flex items-center gap-4">
-        {/* Operational State Indicator */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary border border-primary/20">
-          <div className={cn(
-            "w-2.5 h-2.5 rounded-full",
-            stateColors[operationalState],
-            statePulse[operationalState]
-          )} />
-          <span className="text-sm font-medium uppercase tracking-wide">
-            {operationalState}
-          </span>
+      {/* CENTER: Operational Status Banner */}
+      <div className="flex items-center gap-6">
+        <div className={cn(
+          "flex items-center gap-4 h-12 px-6 rounded-2xl border transition-all duration-500",
+          operationalState === 'green' ? "bg-status-normal/5 border-status-normal/20" :
+            operationalState === 'amber' ? "bg-status-attention/10 border-status-attention/50 animate-hud-pulse" :
+              "bg-status-critical/10 border-status-critical/50 animate-hud-pulse"
+        )}>
+          <div className={cn("w-2 h-2 rounded-full", stateColors[operationalState], "animate-pulse")} />
+          <div className="flex flex-col">
+            <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] leading-none mb-1">SYSTEM_STATUS</span>
+            <span className={cn(
+              "text-sm font-black uppercase tracking-widest leading-none",
+              operationalState === 'green' ? "text-status-normal" :
+                operationalState === 'amber' ? "text-status-attention" : "text-status-critical"
+            )}>
+              {operationalState === 'green' ? 'ROUTINE_PATROL' :
+                operationalState === 'amber' ? 'VALIDATION_REQ' : 'ACTIVE_RESPONSE'}
+            </span>
+          </div>
         </div>
 
-        {/* Active Incidents Badge */}
-        <button
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
-            activeIncidents > 0
-              ? "bg-primary/20 border border-primary text-primary hover:bg-primary/30"
-              : "bg-secondary border border-primary/20 text-muted-foreground"
-          )}
-        >
-          <span className={cn(
-            "font-mono text-lg font-bold",
-            activeIncidents > 0 && "text-primary"
-          )}>
-            {activeIncidents}
-          </span>
-          <span className="text-sm">ACTIVE</span>
-          {activeIncidents > 0 && operationalState !== 'green' && (
-            <div className={cn(
-              "w-2 h-2 rounded-full",
-              operationalState === 'red' ? "bg-status-critical pulse-red" : "bg-status-attention pulse-amber"
-            )} />
-          )}
-        </button>
+        {activeIncidents > 0 && (
+          <div className="flex items-center gap-2 h-12 px-5 rounded-2xl bg-status-critical text-white shadow-xl shadow-status-critical/20 animate-in slide-in-from-top duration-500">
+            <Activity className="w-5 h-5 text-white animate-pulse" />
+            <span className="text-xl font-black tabular-nums">{activeIncidents}</span>
+            <span className="text-[9px] font-black uppercase tracking-widest opacity-80">ALERT</span>
+          </div>
+        )}
       </div>
 
-      {/* Right Section: Notifications + Profile */}
-      <div className="flex items-center gap-4">
-        {/* Notifications Bell */}
-        <button 
-          className={cn(
-            "relative p-2.5 rounded-lg",
-            "bg-secondary border border-primary/20",
-            "hover:border-primary/40 transition-colors"
-          )}
-          title="System Notifications"
-        >
-          <Bell className="w-5 h-5 text-muted-foreground" />
+      {/* RIGHT: Notifications & Operator Profile */}
+      <div className="flex items-center gap-8">
+        <button className="relative w-12 h-12 flex items-center justify-center bg-white/[0.02] border border-white/10 rounded-2xl hover:bg-white/[0.05] hover:border-white/20 transition-all group">
+          <Bell className="w-5 h-5 text-white/40 group-hover:text-white transition-colors" />
           {alertsCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center">
-              {alertsCount > 9 ? "9+" : alertsCount}
+            <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] bg-primary text-white text-[9px] font-black rounded-lg flex items-center justify-center shadow-lg border-2 border-[#050B14]">
+              {alertsCount}
             </span>
           )}
         </button>
 
-        {/* Operator Profile */}
-        <div className="flex items-center gap-3 pl-4 border-l border-primary/20">
-          <div className="text-right">
-            <p className="text-sm font-medium">{operatorName}</p>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="w-3 h-3" />
-              <span>On duty {shiftTime}</span>
+        <div className="h-10 w-px bg-white/5" />
+
+        <div className="flex items-center gap-4">
+          <div className="text-right hidden sm:block">
+            <p className="text-xs font-black text-white leading-none mb-1.5">{operatorName.toUpperCase()}</p>
+            <div className="flex items-center justify-end gap-2 text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">
+              <Shield className="w-3 h-3 text-status-normal" />
+              <span>LOGGED_IN: {shiftTime}</span>
             </div>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-secondary border border-primary/20 flex items-center justify-center">
-            <User className="w-5 h-5 text-muted-foreground" />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-white/10 to-transparent border border-white/10 flex items-center justify-center p-0.5">
+            <div className="w-full h-full rounded-xl bg-[#1A2332] flex items-center justify-center">
+              <User className="w-5 h-5 text-white/40" />
+            </div>
           </div>
         </div>
       </div>

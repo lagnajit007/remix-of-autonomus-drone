@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Mic, MicOff, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VOICE_COMMANDS } from "@/hooks/useVoiceCommands";
@@ -136,7 +136,6 @@ export function VoicePanel({
  */
 export function useVoicePushToTalk(onCommand: (command: string) => void) {
   const [isListening, setIsListening] = useState(false);
-  const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const startListening = useCallback(() => {
     console.log('[VOICE] Started listening');
