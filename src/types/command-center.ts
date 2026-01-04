@@ -2,7 +2,7 @@
 
 export type OperationalState = 'green' | 'amber' | 'red';
 
-export type DroneStatus = 'patrolling' | 'docked' | 'en_route' | 'on_mission' | 'returning';
+export type DroneStatus = 'patrolling' | 'docked' | 'en_route' | 'on_mission' | 'returning' | 'offline';
 
 export type IncidentSeverity = 'low' | 'medium' | 'high' | 'critical';
 
@@ -18,6 +18,7 @@ export interface Drone {
   status: DroneStatus;
   battery: number;
   location: Coordinates;
+  position?: [number, number]; // For Leaflet compatibility
   task?: string;
   zone?: string;
   eta?: number;
@@ -28,6 +29,8 @@ export interface Sensor {
   id: string;
   type: 'thermal' | 'motion' | 'smoke' | 'camera';
   location: Coordinates;
+  position?: [number, number]; // For Leaflet compatibility
+  temperature?: number;
   lastReading: string;
   status: 'normal' | 'alert' | 'offline';
 }
@@ -54,11 +57,17 @@ export interface Incident {
   type: IncidentType;
   severity: IncidentSeverity;
   location: Coordinates;
+  coordinates?: [number, number]; // For Leaflet compatibility
   address: string;
+  // Display properties
+  title?: string;
+  priority?: 1 | 2 | 3; // 1=Critical, 2=Attention, 3=Monitor
+  confidence?: number; // AI confidence percentage
   detectedAt: Date;
   status: 'detected' | 'responding' | 'active' | 'contained' | 'resolved';
   threatAssessment: ThreatAssessment;
   assignedDrones: string[];
+  dronesAssigned?: string[]; // Alias for compatibility
   groundUnits: string[];
   evacuationsSent: number;
 }
@@ -66,8 +75,10 @@ export interface Incident {
 export interface TimelineEvent {
   id: string;
   timestamp: Date;
+  time?: string; // Formatted time string for display
   type: 'detection' | 'dispatch' | 'confirmation' | 'coordination' | 'evacuation' | 'resolution';
   message: string;
+  description?: string; // Alias for compatibility
   severity: 'info' | 'warning' | 'critical';
 }
 
