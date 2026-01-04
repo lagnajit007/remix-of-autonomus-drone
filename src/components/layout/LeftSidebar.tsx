@@ -1,10 +1,9 @@
 import { useState, useCallback } from "react";
-import { 
-  ChevronDown, 
-  ChevronRight,
-  MapPin, 
-  Plane, 
-  Radio, 
+import {
+  ChevronDown,
+  MapPin,
+  Plane,
+  Radio,
   Calendar,
   Activity,
   AlertTriangle,
@@ -12,7 +11,8 @@ import {
   Home,
   Pause,
   Settings,
-  Focus
+  Focus,
+  Battery
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Drone } from "@/types/command-center";
@@ -44,12 +44,10 @@ interface LeftSidebarProps {
 }
 
 /**
- * Left Sidebar (280px Fixed Width) - Enhanced with interactions
+ * Left Sidebar (280px Fixed Width)
  * 
- * Features:
- * - Smooth collapsible animations
- * - Zone click-to-zoom
- * - Drone selection with map highlighting
+ * Purpose: Static context and quick navigation
+ * Design: High-density, glanceable, WCAG AAA accessibility
  */
 export function LeftSidebar({
   zones,
@@ -76,13 +74,6 @@ export function LeftSidebar({
     critical: "text-status-critical",
   };
 
-  const statusBg = {
-    normal: "bg-status-normal",
-    attention: "bg-status-attention", 
-    critical: "bg-status-critical",
-  };
-
-  // Sort drones: Active → Low battery → Docked → Offline
   const sortedDrones = [...drones].sort((a, b) => {
     const statusOrder = { on_mission: 0, en_route: 1, returning: 2, patrolling: 2.5, docked: 3, offline: 4 };
     const aOrder = statusOrder[a.status] ?? 5;
@@ -91,19 +82,9 @@ export function LeftSidebar({
     return (b.battery ?? 0) - (a.battery ?? 0);
   });
 
-  const handleZoneClick = useCallback((zone: Zone) => {
-    console.log(`[SIDEBAR] Zone clicked: ${zone.name}`);
-    onZoneClick?.(zone.id, zone.center);
-  }, [onZoneClick]);
-
-  const handleDroneClick = useCallback((droneId: string) => {
-    console.log(`[SIDEBAR] Drone selected: ${droneId}`);
-    onDroneSelect?.(droneId);
-  }, [onDroneSelect]);
-
   return (
-    <div className={cn("flex flex-col h-full", className)}>
-      {/* Section 1: Zone Overview */}
+    <div className={cn("flex flex-col h-full bg-background select-none", className)}>
+      {/* SECTION 1: ZONE OVERVIEW (Collapsible) */}
       <CollapsibleSection
         title="ZONES"
         subtitle="Monitoring"
@@ -111,36 +92,33 @@ export function LeftSidebar({
         expanded={zonesExpanded}
         onToggle={() => setZonesExpanded(!zonesExpanded)}
       >
-        <div className="space-y-2">
+        <div className="space-y-1">
           {zones.map((zone) => (
             <button
               key={zone.id}
-              onClick={() => handleZoneClick(zone)}
+              onClick={() => onZoneClick?.(zone.id, zone.center)}
               className={cn(
-                "w-full p-2 rounded-lg text-left transition-all duration-200",
-                "bg-secondary/50 border border-primary/10",
-                "hover:border-primary/40 hover:bg-secondary hover:scale-[1.02]",
-                "active:scale-[0.98]",
-                "group"
+                "w-full px-3 py-2.5 rounded-lg text-left transition-all border border-transparent",
+                "bg-[#1A2332]/40 hover:bg-[#1A2332] hover:border-primary/20",
+                zone.hasIncident && "border-status-attention/50 bg-status-attention/5"
               )}
             >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium group-hover:text-primary transition-colors">
-                  {zone.name}
-                </span>
-                <div className="flex items-center gap-2">
-                  <Focus className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className={cn("w-2 h-2 rounded-full", statusBg[zone.status])} />
-                </div>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-sm font-bold text-white pr-2 truncate">{zone.name}</span>
+                <div className={cn(
+                  "w-1.5 h-1.5 rounded-full shrink-0",
+                  zone.status === 'normal' ? "bg-status-normal" :
+                    zone.status === 'attention' ? "bg-status-attention" : "bg-status-critical"
+                )} />
               </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>● {zone.drones} Drones</span>
-                <span>| {zone.sensors} Sensors</span>
+              <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                <span>● {zone.drones} DRONES</span>
+                <span>| {zone.sensors} SENSORS</span>
               </div>
               {zone.hasIncident && (
-                <div className="flex items-center gap-1 mt-1 text-xs text-status-attention animate-pulse">
+                <div className="flex items-center gap-1 mt-1 text-[10px] font-black text-status-attention animate-pulse">
                   <AlertTriangle className="w-3 h-3" />
-                  <span>1 Incident Active</span>
+                  <span>INCIDENT ACTIVE</span>
                 </div>
               )}
             </button>
@@ -148,31 +126,33 @@ export function LeftSidebar({
         </div>
       </CollapsibleSection>
 
-      {/* Section 2: Fleet Status (Always Visible) */}
-      <div className="panel-section">
-        <div className="flex items-center justify-between mb-3">
+      {/* SECTION 2: FLEET STATUS (Always Visible) */}
+      <div className="p-4 border-b border-white/5 bg-[#1A2332]/20">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Plane className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">DRONES</span>
+            <span className="text-xs font-black uppercase tracking-widest text-white/70">DRONES</span>
           </div>
-          <span className="text-xs text-muted-foreground">({drones.length} Total)</span>
+          <span className="text-[10px] font-bold text-muted-foreground bg-white/5 px-1.5 py-0.5 rounded">
+            {drones.length} TOTAL
+          </span>
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-0.5 mb-4">
           {sortedDrones.map((drone) => (
-            <DroneStatusRow 
-              key={drone.id} 
-              drone={drone} 
+            <DroneStatusRow
+              key={drone.id}
+              drone={drone}
               isSelected={selectedDroneId === drone.id}
-              onClick={() => handleDroneClick(drone.id)}
+              onClick={() => onDroneSelect?.(drone.id)}
             />
           ))}
         </div>
-        <button className="w-full mt-3 py-2 text-sm text-primary border border-primary/30 rounded-lg hover:bg-primary/10 hover:border-primary/50 transition-all duration-200 active:scale-[0.98]">
+        <button className="w-full py-2 text-[10px] font-black uppercase tracking-widest text-primary border border-primary/20 rounded-md hover:bg-primary/10 hover:border-primary/40 transition-all active:scale-[0.98]">
           + Deploy Available Drone
         </button>
       </div>
 
-      {/* Section 3: Sensor Health */}
+      {/* SECTION 3: SENSOR HEALTH (Collapsible) */}
       <CollapsibleSection
         title="SENSORS"
         subtitle={`${sensorsOnline + sensorsWeak + sensorsOffline} Active`}
@@ -180,154 +160,134 @@ export function LeftSidebar({
         expanded={sensorsExpanded}
         onToggle={() => setSensorsExpanded(!sensorsExpanded)}
       >
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-status-normal">✓</span>
-            <span>{sensorsOnline} Operational</span>
+        <div className="space-y-2 p-1">
+          <div className="flex items-center justify-between text-[11px] font-bold">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-status-normal" />
+              <span className="text-white/80">Operational</span>
+            </div>
+            <span className="text-muted-foreground">{sensorsOnline}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-status-attention">⚠</span>
-            <span>{sensorsWeak} Weak Signal</span>
+          <div className="flex items-center justify-between text-[11px] font-bold">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-status-attention" />
+              <span className="text-white/80">Weak Signal</span>
+            </div>
+            <span className="text-muted-foreground">{sensorsWeak}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">✗</span>
-            <span>{sensorsOffline} Offline</span>
+          <div className="flex items-center justify-between text-[11px] font-bold">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+              <span className="text-white/80">Offline</span>
+            </div>
+            <span className="text-muted-foreground">{sensorsOffline}</span>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Last Check: {lastUpdate}
-          </p>
         </div>
       </CollapsibleSection>
 
-      {/* Section 4: Missions Scheduler */}
+      {/* SECTION 4: MISSIONS SCHEDULER (Collapsible) */}
       <CollapsibleSection
-        title="SCHEDULED MISSIONS"
+        title="MISSIONS"
         icon={<Calendar className="w-4 h-4" />}
         expanded={missionsExpanded}
         onToggle={() => setMissionsExpanded(!missionsExpanded)}
       >
-        <div className="space-y-2 text-sm">
-          <div className="p-2 bg-secondary/50 rounded-lg border border-primary/10">
-            <p className="font-medium">Next: Perimeter Patrol</p>
-            <p className="text-xs text-muted-foreground">Time: 18:00 (5h 47m)</p>
-            <p className="text-xs text-muted-foreground">Drone: Auto-assign</p>
-            <div className="flex gap-2 mt-2">
-              <button className="text-xs text-primary hover:underline">[Edit]</button>
-              <button className="text-xs text-muted-foreground hover:underline">[Cancel]</button>
+        <div className="space-y-2 p-1">
+          <div className="bg-[#1A2332] p-3 rounded-lg border border-white/5">
+            <p className="text-[11px] font-bold text-white mb-1">Perimeter Patrol</p>
+            <p className="text-[10px] font-medium text-muted-foreground italic mb-3">Next launch: 18:00 (5h 47m)</p>
+            <div className="flex gap-2">
+              <button className="text-[10px] font-black text-primary hover:text-primary/80">EDIT</button>
+              <button className="text-[10px] font-black text-muted-foreground hover:text-white">CANCEL</button>
             </div>
           </div>
-          <button className="w-full py-2 text-sm text-primary border border-primary/30 rounded-lg hover:bg-primary/10 transition-colors">
-            + Create New Mission
-          </button>
         </div>
       </CollapsibleSection>
 
-      {/* Spacer */}
-      <div className="flex-1" />
-
-      {/* Section 5: System Health (Always Visible) */}
-      <div className="panel-section">
+      {/* SECTION 5: SYSTEM HEALTH (Always Visible) */}
+      <div className="p-4 border-t border-white/5 mt-auto bg-[#1A2332]/10">
         <div className="flex items-center gap-2 mb-3">
           <Activity className="w-4 h-4 text-primary" />
-          <span className="text-sm font-medium">SYSTEM STATUS</span>
+          <span className="text-xs font-black uppercase tracking-widest text-white/70">SYSTEM HEALTH</span>
         </div>
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2">
-            <span className={statusColors[systemStatus]}>
-              {systemStatus === "normal" ? "✓" : "⚠"}
-            </span>
-            <span>
-              {systemStatus === "normal" 
-                ? "All Systems Normal" 
-                : systemStatus === "degraded" 
-                  ? "Degraded Performance"
-                  : "Critical Issue"
-              }
-            </span>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-[11px] font-bold">
+            <div className={cn("w-1.5 h-1.5 rounded-full", systemStatus === 'normal' ? "bg-status-normal" : "bg-status-critical")} />
+            <span className="text-white/90">{systemStatus === 'normal' ? "All Systems Normal" : "System Alert"}</span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Network: {networkLatency}ms latency
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Weather: {weather}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Last Update: {lastUpdate}
-          </p>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <div className="flex flex-col">
+              <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-60">Network</span>
+              <span className="text-[10px] font-mono font-bold text-white/80">{networkLatency}ms</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-60">Weather</span>
+              <span className="text-[10px] font-mono font-bold text-white/80">{weather}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Section 6: Quick Actions (Always Visible) */}
-      <div className="panel-section space-y-2">
-        <button className="w-full py-2.5 text-sm font-medium text-destructive-foreground bg-destructive hover:bg-destructive/90 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] hover:shadow-lg hover:shadow-destructive/20">
-          <StopCircle className="w-4 h-4" />
-          Emergency Stop All
+      {/* SECTION 6: QUICK ACTIONS (Always Visible) - Panic Buttons */}
+      <div className="p-4 flex flex-col gap-2 bg-background border-t border-white/10 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
+        <button
+          className={cn(
+            "w-full h-12 flex items-center justify-center gap-2 rounded-lg",
+            "bg-status-critical text-white font-black uppercase tracking-widest text-xs",
+            "hover:bg-status-critical/90 active:scale-[0.98] transition-all duration-200",
+            "shadow-lg shadow-status-critical/20 group"
+          )}
+        >
+          <StopCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          EMERGENCY STOP ALL
         </button>
-        <button className="w-full py-2 text-sm text-foreground bg-secondary border border-primary/20 hover:border-primary/40 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]">
-          <Home className="w-4 h-4" />
-          Return All to Dock
-        </button>
-        <button className="w-full py-2 text-sm text-foreground bg-secondary border border-primary/20 hover:border-primary/40 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]">
-          <Pause className="w-4 h-4" />
-          Pause Operations
-        </button>
-        <button className="w-full py-2 text-sm text-foreground bg-secondary border border-primary/20 hover:border-primary/40 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]">
-          <Settings className="w-4 h-4" />
-          Manual Override
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <QuickActionButton icon={<Home className="w-3.5 h-3.5" />} label="RTH ALL" />
+          <QuickActionButton icon={<Pause className="w-3.5 h-3.5" />} label="PAUSE" />
+          <QuickActionButton icon={<Settings className="w-3.5 h-3.5" />} label="OVERRIDE" className="col-span-2" />
+        </div>
       </div>
     </div>
   );
 }
 
-// Collapsible Section Component with smooth animation
-interface CollapsibleSectionProps {
+function CollapsibleSection({
+  title,
+  subtitle,
+  icon,
+  expanded,
+  onToggle,
+  children
+}: {
   title: string;
   subtitle?: string;
   icon: React.ReactNode;
   expanded: boolean;
   onToggle: () => void;
   children: React.ReactNode;
-}
-
-function CollapsibleSection({ 
-  title, 
-  subtitle, 
-  icon, 
-  expanded, 
-  onToggle, 
-  children 
-}: CollapsibleSectionProps) {
+}) {
   return (
-    <div className="panel-section overflow-hidden">
+    <div className="border-b border-white/5">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between mb-2 group"
+        className="w-full flex items-center justify-between p-4 group hover:bg-white/5 transition-colors"
       >
-        <div className="flex items-center gap-2">
-          <span className="text-primary transition-transform duration-200 group-hover:scale-110">
-            {icon}
-          </span>
-          <span className="text-sm font-medium">{title}</span>
+        <div className="flex items-center gap-2.5">
+          <span className="text-primary group-hover:scale-110 transition-transform">{icon}</span>
+          <span className="text-xs font-black tracking-widest text-white/70 uppercase">{title}</span>
           {subtitle && (
-            <span className="text-xs text-muted-foreground">({subtitle})</span>
+            <span className="text-[10px] font-bold text-muted-foreground/50 lowercase italic ml-1">{subtitle}</span>
           )}
         </div>
-        <div className={cn(
-          "transition-transform duration-200",
+        <ChevronDown className={cn(
+          "w-4 h-4 text-muted-foreground/30 transition-transform duration-300",
           expanded && "rotate-180"
-        )}>
-          <ChevronDown className="w-4 h-4 text-muted-foreground" />
-        </div>
+        )} />
       </button>
-      
-      {/* Animated content container */}
-      <div
-        className={cn(
-          "grid transition-all duration-300 ease-out",
-          expanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-        )}
-      >
+      <div className={cn(
+        "grid transition-all duration-300 ease-in-out",
+        expanded ? "grid-rows-[1fr] opacity-100 px-4 pb-4" : "grid-rows-[0fr] opacity-0"
+      )}>
         <div className="overflow-hidden">
           {children}
         </div>
@@ -336,64 +296,72 @@ function CollapsibleSection({
   );
 }
 
-// Drone Status Row Component with selection state
-interface DroneStatusRowProps {
-  drone: Drone;
-  isSelected?: boolean;
-  onClick?: () => void;
-}
-
-function DroneStatusRow({ drone, isSelected, onClick }: DroneStatusRowProps) {
+function DroneStatusRow({ drone, isSelected, onClick }: { drone: Drone; isSelected?: boolean; onClick?: () => void }) {
   const statusConfig = {
-    on_mission: { dot: "bg-status-normal", label: "Active" },
-    en_route: { dot: "bg-status-attention", label: "En Route" },
-    returning: { dot: "bg-status-attention", label: "RTH" },
-    patrolling: { dot: "bg-accent", label: "Patrol" },
-    docked: { dot: "bg-muted-foreground", label: "Docked" },
-    offline: { dot: "bg-muted", label: "Offline" },
+    on_mission: { color: "bg-status-normal", glow: "shadow-status-normal/40" },
+    en_route: { color: "bg-status-attention", glow: "shadow-status-attention/40" },
+    returning: { color: "bg-status-attention", glow: "shadow-status-attention/40" },
+    patrolling: { color: "bg-accent", glow: "shadow-accent/40" },
+    docked: { color: "bg-muted-foreground", glow: "" },
+    offline: { color: "bg-muted", glow: "" },
   };
 
   const config = statusConfig[drone.status] || statusConfig.offline;
-  const batteryColor = 
-    drone.battery === undefined ? "text-muted-foreground" :
-    drone.battery < 30 ? "text-status-critical" : 
-    drone.battery < 50 ? "text-status-attention" : 
-    "text-status-normal";
 
   return (
-    <button 
+    <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-center justify-between py-1.5 px-2 rounded transition-all duration-200 text-left",
-        "hover:bg-secondary/70",
-        "active:scale-[0.98]",
-        isSelected && "bg-primary/20 border border-primary/50 shadow-sm shadow-primary/10"
+        "w-full flex items-center h-10 px-2.5 rounded transition-all group",
+        isSelected ? "bg-primary/20 border border-primary/40" : "hover:bg-white/5 border border-transparent"
       )}
     >
-      <div className="flex items-center gap-2">
-        <div className={cn(
-          "w-2 h-2 rounded-full transition-all duration-200",
-          config.dot,
-          isSelected && "scale-125 ring-2 ring-primary/30"
+      <div className={cn(
+        "w-2 h-2 rounded-full shrink-0 mr-3 shadow-sm transition-transform group-hover:scale-125",
+        config.color,
+        isSelected && config.glow
+      )} />
+
+      <span className={cn(
+        "text-[11px] font-black w-12 text-left",
+        isSelected ? "text-primary shadow-primary/20" : "text-white/80"
+      )}>
+        {drone.id}
+      </span>
+
+      <div className="flex items-center gap-1.5 ml-1 mr-auto shrink-0">
+        <Battery className={cn(
+          "w-3 h-3 opacity-60",
+          drone.battery && drone.battery < 30 ? "text-status-critical" : "text-muted-foreground"
         )} />
         <span className={cn(
-          "text-sm font-mono transition-colors",
-          isSelected && "text-primary font-semibold"
+          "text-[10px] font-mono font-bold",
+          drone.battery && drone.battery < 30 ? "text-status-critical" : "text-muted-foreground"
         )}>
-          {drone.id}
+          {drone.battery ?? "--"}%
         </span>
       </div>
-      <div className="flex items-center gap-3 text-xs">
-        <span className={cn("font-mono", batteryColor)}>
-          {drone.battery !== undefined ? `${drone.battery}%` : "--"}
-        </span>
-        <span className={cn(
-          "w-16 truncate",
-          isSelected ? "text-primary" : "text-muted-foreground"
-        )}>
-          {drone.task || config.label}
-        </span>
-      </div>
+
+      <span className={cn(
+        "text-[10px] uppercase font-black truncate max-w-[80px] text-right ml-2 opacity-60 tracking-tighter",
+        isSelected ? "text-primary opacity-100" : "text-white/90"
+      )}>
+        {drone.task || drone.status.replace('_', ' ')}
+      </span>
+    </button>
+  );
+}
+
+function QuickActionButton({ icon, label, className }: { icon: React.ReactNode; label: string; className?: string }) {
+  return (
+    <button className={cn(
+      "h-10 border border-white/5 rounded-lg flex items-center justify-center gap-2",
+      "bg-[#1A2332]/40 hover:bg-[#1A2332] hover:border-primary/30",
+      "text-[10px] font-black uppercase tracking-widest text-white/70 transition-all active:scale-[0.95]",
+      className
+    )}>
+      {icon}
+      {label}
     </button>
   );
 }

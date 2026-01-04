@@ -1,376 +1,140 @@
+/* FlytBase Emergency Command Center - Design System */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* FlytBase Emergency Command Center - Design System
-   Mission-critical dark UI optimized for 24/7 operations
-   Reality-first: Clarity over cleverness, stress-reducing
-   All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    /* FlytBase Command Center - Dark Theme Only
-       Base: Deep Navy Black (#0A1628)
-       Primary: Orange (#FF851B) for urgency/actions
-       AI/Tech: Cyan (#00D9FF) for automated processes
-    */
-    
     /* Core Background - Deep Navy Black */
     --background: 216 71% 9%;
-    --background-gradient: 217 54% 11%;
     --foreground: 0 0% 100%;
 
-    /* Cards - Dark Slate */
-    --card: 220 30% 10%;
-    --card-foreground: 0 0% 100%;
-
-    --popover: 220 30% 10%;
-    --popover-foreground: 0 0% 100%;
-
-    /* Primary - Orange for urgency/actions */
+    /* Sidebars */
+    --sidebar: 216 71% 7%;
+    --card: 216 71% 11%;
+    --muted: 216 20% 20%;
+    --muted-foreground: 216 10% 60%;
+    
+    /* Primary - Emergency Orange */
     --primary: 28 100% 55%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Darker slate */
-    --secondary: 218 30% 15%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 218 25% 18%;
-    --muted-foreground: 214 20% 69%;
-
-    /* Accent - Cyan for AI/tech only */
+    /* Accent - Tactical Cyan */
     --accent: 187 100% 50%;
     --accent-foreground: 216 71% 9%;
 
-    --destructive: 0 100% 62%;
-    --destructive-foreground: 0 0% 100%;
-
-    /* Borders - Orange at 30% normally */
-    --border: 28 100% 55%;
-    --input: 218 30% 15%;
-    --ring: 28 100% 55%;
-
-    --radius: 0.5rem;
-
-    /* Semantic Status Colors (Universal Emergency Standards) */
-    --status-normal: 145 100% 39%;      /* Green: Safe, completed */
-    --status-attention: 43 100% 50%;    /* Amber: Attention needed */
-    --status-critical: 0 100% 62%;      /* Red: Immediate action */
-    --status-ai: 187 100% 50%;          /* Cyan: AI action */
+    /* Semantic Status Colors */
+    --status-normal: 145 100% 39%;      /* Green */
+    --status-attention: 43 100% 50%;    /* Amber */
+    --status-critical: 0 100% 62%;      /* Red */
+    --status-ai: 187 100% 50%;          /* Cyan */
     
-    /* Extended Palette */
-    --surface-elevated: 218 35% 12%;
-    --orange-glow: 28 100% 55%;
-    --cyan-glow: 187 100% 50%;
-    
-    /* Sidebar - Fixed Left Panel */
-    --sidebar-background: 216 71% 9%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 28 100% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 218 30% 15%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 28 100% 55%;
-    --sidebar-ring: 28 100% 55%;
-
-    /* Panel - Fixed Right Panel */
-    --panel-background: 220 30% 10%;
-    --panel-border: 28 100% 55%;
+    --radius: 0.75rem;
   }
 
-  .dark {
-    /* Same as root - this is a dark-only interface */
-    --background: 216 71% 9%;
-    --background-gradient: 217 54% 11%;
-    --foreground: 0 0% 100%;
-
-    --card: 220 30% 10%;
-    --card-foreground: 0 0% 100%;
-
-    --popover: 220 30% 10%;
-    --popover-foreground: 0 0% 100%;
-
-    --primary: 28 100% 55%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 218 30% 15%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 218 25% 18%;
-    --muted-foreground: 214 20% 69%;
-
-    --accent: 187 100% 50%;
-    --accent-foreground: 216 71% 9%;
-
-    --destructive: 0 100% 62%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 28 100% 55%;
-    --input: 218 30% 15%;
-    --ring: 28 100% 55%;
-
-    --sidebar-background: 216 71% 9%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 28 100% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 218 30% 15%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 28 100% 55%;
-    --sidebar-ring: 28 100% 55%;
-  }
-}
-
-@layer base {
   * {
-    @apply border-border/30;
+    @apply border-border;
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    @apply bg-background text-foreground antialiased font-sans overflow-hidden;
+    font-size: 16px; /* WCAG AAA base font */
   }
+
+  /* Fixed Layout Structure - 1920x1080 optimized */
+  .command-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr 440px; /* sidebar, map, panel */
+    grid-template-rows: 80px 1fr; /* topbar, content */
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .command-topbar { grid-area: 1 / 1 / 2 / 4; }
+  .command-sidebar { grid-area: 2 / 1 / 3 / 2; }
+  .command-map { grid-area: 2 / 2 / 3 / 3; }
+  .command-panel { grid-area: 2 / 3 / 3 / 4; }
 }
 
 @layer components {
-  /* Pulse animation for orange alerts */
-  .pulse-orange {
-    animation: pulse-orange 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  
-  @keyframes pulse-orange {
-    0%, 100% {
-      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.7);
-    }
-    50% {
-      box-shadow: 0 0 0 8px hsl(var(--primary) / 0);
-    }
-  }
-
-  /* Cyan pulse for AI actions */
-  .pulse-cyan {
-    animation: pulse-cyan 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  
-  @keyframes pulse-cyan {
-    0%, 100% {
-      box-shadow: 0 0 0 0 hsl(var(--accent) / 0.7);
-    }
-    50% {
-      box-shadow: 0 0 0 8px hsl(var(--accent) / 0);
-    }
-  }
-
-  .pulse-red {
-    animation: pulse-red 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  
-  @keyframes pulse-red {
-    0%, 100% {
-      box-shadow: 0 0 0 0 hsl(var(--destructive) / 0.7);
-    }
-    50% {
-      box-shadow: 0 0 0 12px hsl(var(--destructive) / 0);
-    }
-  }
-
-  .pulse-amber {
-    animation: pulse-amber 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  
-  @keyframes pulse-amber {
-    0%, 100% {
-      box-shadow: 0 0 0 0 hsl(var(--status-attention) / 0.7);
-    }
-    50% {
-      box-shadow: 0 0 0 10px hsl(var(--status-attention) / 0);
-    }
-  }
-
-  /* Glow effects */
-  .glow-orange {
-    box-shadow: 0 0 20px hsl(var(--primary) / 0.3), 0 0 40px hsl(var(--primary) / 0.1);
-  }
-
-  .glow-cyan {
-    box-shadow: 0 0 20px hsl(var(--accent) / 0.3), 0 0 40px hsl(var(--accent) / 0.1);
-  }
-
-  .glow-red {
-    box-shadow: 0 0 20px hsl(var(--destructive) / 0.4), 0 0 40px hsl(var(--destructive) / 0.2);
-  }
-
-  /* Status indicator dots */
-  .status-dot {
-    @apply w-2 h-2 rounded-full;
-  }
-  
-  .status-dot-normal {
-    @apply bg-[hsl(var(--status-normal))];
-  }
-  
-  .status-dot-attention {
-    @apply bg-[hsl(var(--status-attention))];
-  }
-  
-  .status-dot-critical {
-    @apply bg-[hsl(var(--status-critical))];
-  }
-
-  .status-dot-ai {
-    @apply bg-[hsl(var(--status-ai))];
-  }
-
-  /* Command card with orange border (30% default, 100% on hover/active) */
-  .command-card {
-    @apply bg-card border border-primary/30 rounded-lg transition-colors;
-  }
-
-  .command-card:hover {
-    @apply border-primary/50;
-  }
-
-  .command-card-active {
-    @apply bg-card border border-primary rounded-lg;
-  }
-
-  /* Panel sections */
   .panel-section {
-    @apply bg-card/50 border border-primary/20 rounded-lg p-3;
+    @apply p-4 border border-white/5 rounded-xl bg-card/40 backdrop-blur-sm transition-all;
   }
 
-  /* Monospace data display */
-  .data-mono {
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-    @apply tracking-tight;
+  .command-card {
+    @apply bg-card border border-primary/20 rounded-xl shadow-lg;
   }
 
-  /* Slide in animation */
-  .slide-in-right {
-    animation: slideInRight 0.3s ease-out;
-  }
-
-  @keyframes slideInRight {
-    from {
-      opacity: 0;
-      transform: translateX(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  .slide-in-top {
-    animation: slideInTop 0.3s ease-out;
-  }
-
-  @keyframes slideInTop {
-    from {
-      opacity: 0;
-      transform: translateY(-20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Fade in animation */
-  .fade-in {
-    animation: fadeIn 0.3s ease-out;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  /* Screen dim overlay */
-  .screen-dim {
-    @apply fixed inset-0 bg-black/40 z-40;
-  }
-
-  /* Fixed Layout Structure */
-  .command-layout {
-    display: grid;
-    grid-template-columns: 280px 1fr 440px;
-    grid-template-rows: 80px 1fr;
-    height: 100vh;
-    width: 100%;
-  }
-
-  .command-topbar {
-    grid-column: 1 / -1;
-    grid-row: 1;
-  }
-
-  .command-sidebar {
-    grid-column: 1;
-    grid-row: 2;
-    overflow-y: auto;
-  }
-
-  .command-map {
-    grid-column: 2;
-    grid-row: 2;
-    min-width: 0;
-  }
-
-  .command-panel {
-    grid-column: 3;
-    grid-row: 2;
-    overflow-y: auto;
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 
-/* Leaflet map dark theme overrides */
-.leaflet-container {
-  background: hsl(216 71% 9%) !important;
+/* Tactical Animations */
+
+@keyframes pulse-status-normal {
+  0% { box-shadow: 0 0 0 0 rgba(0, 200, 83, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 200, 83, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 200, 83, 0); }
 }
 
-.leaflet-control-zoom a {
-  background: hsl(220 30% 10%) !important;
-  color: hsl(0 0% 100%) !important;
-  border-color: hsl(28 100% 55% / 0.3) !important;
+@keyframes pulse-status-attention {
+  0% { box-shadow: 0 0 0 0 rgba(255, 184, 0, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(255, 184, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 184, 0, 0); }
 }
 
-.leaflet-control-zoom a:hover {
-  background: hsl(218 30% 15%) !important;
-  border-color: hsl(28 100% 55% / 0.5) !important;
+@keyframes pulse-status-critical {
+  0% { box-shadow: 0 0 0 0 rgba(255, 59, 59, 0.6); }
+  70% { box-shadow: 0 0 0 20px rgba(255, 59, 59, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 59, 59, 0); }
 }
 
-.leaflet-control-attribution {
-  background: hsl(220 30% 10% / 0.9) !important;
-  color: hsl(214 20% 69%) !important;
+@keyframes pulse-border-red {
+  0% { border-color: rgba(255, 59, 59, 1); }
+  50% { border-color: rgba(255, 59, 59, 0.2); }
+  100% { border-color: rgba(255, 59, 59, 1); }
 }
 
-.leaflet-control-attribution a {
-  color: hsl(28 100% 55%) !important;
-}
+.pulse-red { animation: pulse-status-critical 2s infinite; }
+.pulse-amber { animation: pulse-status-attention 2s infinite; }
+.pulse-green { animation: pulse-status-normal 2s infinite; }
+.animate-pulse-border-red { animation: pulse-border-red 1.5s infinite; }
 
-/* Scrollbar styling for panels */
-.command-sidebar::-webkit-scrollbar,
-.command-panel::-webkit-scrollbar {
+/* Custom Scrollbar for Mission-Critical UI */
+::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
-.command-sidebar::-webkit-scrollbar-track,
-.command-panel::-webkit-scrollbar-track {
-  background: hsl(216 71% 9%);
+::-webkit-scrollbar-track {
+  @apply bg-background/50;
 }
 
-.command-sidebar::-webkit-scrollbar-thumb,
-.command-panel::-webkit-scrollbar-thumb {
-  background: hsl(28 100% 55% / 0.3);
-  border-radius: 3px;
+::-webkit-scrollbar-thumb {
+  @apply bg-primary/20 rounded-full hover:bg-primary/40 transition-colors;
 }
 
-.command-sidebar::-webkit-scrollbar-thumb:hover,
-.command-panel::-webkit-scrollbar-thumb:hover {
-  background: hsl(28 100% 55% / 0.5);
+/* Leaflet Dark Theme Overrides */
+.leaflet-container {
+  background: #0A1628 !important;
+}
+
+.leaflet-bar {
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+}
+
+.leaflet-bar a {
+  @apply bg-card text-foreground border-white/10 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  @apply bg-card text-foreground border border-primary/20 rounded-lg shadow-2xl;
+}
+
+.leaflet-popup-tip {
+  @apply bg-card;
 }
